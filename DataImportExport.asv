@@ -38,16 +38,16 @@ classdef DataImportExport
             d.Message = 'Processing the data';
             pause(1)
             
-            RawSpectraIntensities=zeros(x,y);
             RawMzValues=RawImportData(:,1);
             %[RowNumber,ColumnNumber]= size(RawImportData);
             [x,y] = size(RawImportData);
+            RawSpectraIntensities=zeros(x,y);
             for i = 2:y
                 RawSpectraIntensities(:,i)  = RawImportData(:,i);
             end
             RawSpectraIntensities(:,1)=[];
             % MinIntensity = min(RawMzValues);
-            MaxIntensity = max(RawMzValues);
+            % MaxIntensity = max(RawMzValues);
             [m,n] = size(RawSpectraIntensities);
             NumberOfSpectra = n;
             
@@ -57,10 +57,26 @@ classdef DataImportExport
             d.Value = 1;
             d.Message = 'Finishing';
             pause(1)
+            
+            importedMSData = MSData(fileName,RawImportData,RawMzValues,RawSpectraIntensities,NumberOfSpectra);
+            DataImportExport.initProjectInfo(app,importedMSData);
 
             % Close dialog box
             close(d)
             close(fig)
+        end
+        
+        function initProjectInfo(app, MSData)
+            app.ProjectNameEditField.Value = MSData.FileName;
+            app.NumberofMassSpectraEditField.Value = MSData.NumberOfSpectra;
+            app.WidthField.Value = 1;
+            app.HeightField.Value = MSData.NumberOfSpectra;
+            app.WidthField.Editable = 'off';
+            
+        end
+        
+        function width = calculateWidth (numberOfSpectra, height)
+            width = numberOfSpectra/height;
         end
         
         function outputArg = method1(obj,inputArg)
