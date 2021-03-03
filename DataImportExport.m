@@ -58,11 +58,26 @@ classdef DataImportExport
             d.Message = 'Finishing';
             pause(1)
             
-            importedMSData = MSData(RawImportData,RawMzValues,RawSpectraIntensities,NumberOfSpectra);
+            importedMSData = MSData(fileName,RawImportData,RawMzValues,RawSpectraIntensities,NumberOfSpectra);
+            DataImportExport.initProjectInfo(app,importedMSData);
 
             % Close dialog box
             close(d)
             close(fig)
+        end
+        
+        function initProjectInfo(app, MSData)
+            app.ProjectNameEditField.Value = MSData.FileName;
+            app.NumberofMassSpectraEditField.Value = MSData.NumberOfSpectra;
+            app.WidthField.Value = 1;
+            app.HeightField.Value = MSData.NumberOfSpectra;
+            app.WidthField.Editable = 'off';
+            app.HeightField.Editable = 'off';
+
+        end
+        
+        function width = calculateWidth (numberOfSpectra, height)
+            width = numberOfSpectra/height;
         end
         
         function outputArg = method1(obj,inputArg)
