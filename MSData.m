@@ -1,5 +1,5 @@
 classdef MSData
-    %MSDATA Summary of this class goes here
+    %MSDATA Summary of this class goes here test
     %   Detailed explanation goes here
     
     properties
