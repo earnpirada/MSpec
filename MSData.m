@@ -3,6 +3,7 @@ classdef MSData
     %   Detailed explanation goes here
     
     properties
+        FileName
         RawData
         RawMzValues
         RawSpectraIntensities
@@ -12,8 +13,9 @@ classdef MSData
     end
     
     methods
-        function obj = MSData(rawData,mzValues,intensityMatrix,numOfSpectra)
+        function obj = MSData(fileName,rawData,mzValues,intensityMatrix,numOfSpectra)
             % constructor
+            obj.FileName = fileName;
             obj.RawData = rawData;
             obj.RawMzValues = mzValues;
             obj.RawSpectraIntensities = intensityMatrix;
