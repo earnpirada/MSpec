@@ -1,7 +1,6 @@
 classdef DataImportExport
     
     properties
-        Property1
     end
     
     methods (Static)
@@ -58,11 +57,31 @@ classdef DataImportExport
             d.Message = 'Finishing';
             pause(1)
             
-            importedMSData = MSData(RawImportData,RawMzValues,RawSpectraIntensities,NumberOfSpectra);
+            importedMSData = MSData(fileName,RawImportData,RawMzValues,RawSpectraIntensities,NumberOfSpectra, m , n);
+            DataImportExport.initProjectInfo(app,importedMSData);
+            app.currentProject = MSProject(importedMSData);
 
             % Close dialog box
             close(d)
             close(fig)
+        end
+        
+        function initProjectInfo(app, MSData)
+            app.ProjectNameEditField.Value = MSData.FileName(1:end-4);
+            app.NumberofMassSpectraEditField.Value = MSData.NumberOfSpectra;
+            app.WidthField.Value = 1;
+            app.HeightField.Value = MSData.NumberOfSpectra;
+            app.WidthField.Editable = 'off';
+            app.HeightField.Editable = 'off';
+
+        end
+        
+        function width = calculateWidth (numberOfSpectra, height)
+            width = numberOfSpectra/height;
+        end
+        
+        function createProject (app)
+            app.currentProject.setProjectInfo(app.ProjectNameEditField.Value);
         end
         
         function outputArg = method1(obj,inputArg)
