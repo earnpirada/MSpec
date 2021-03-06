@@ -10,10 +10,12 @@ classdef MSData
         MinIntensity
         MaxIntensity
         NumberOfSpectra
+        RowNumber
+        ColumnNumber
     end
     
     methods
-        function obj = MSData(fileName,rawData,mzValues,intensityMatrix,numOfSpectra)
+        function obj = MSData(fileName,rawData,mzValues,intensityMatrix,numOfSpectra, rowNumber, colNumber)
             % constructor
             obj.FileName = fileName;
             obj.RawData = rawData;
@@ -22,6 +24,8 @@ classdef MSData
             obj.MinIntensity = min(mzValues);
             obj.MaxIntensity = max(mzValues);
             obj.NumberOfSpectra = numOfSpectra;
+            obj.RowNumber = rowNumber;
+            obj.ColumnNumber = colNumber;
         end
         
         function outputArg = method1(obj,inputArg)
