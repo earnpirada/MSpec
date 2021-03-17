@@ -9,27 +9,50 @@ classdef DataImportExport
             d = uiprogressdlg(fig,'Title','Please Wait',...
                 'Message','Opening the import window');
             pause(.5)
-            [file, path] = uigetfile('*.csv');
-            if isequal(file,0)
+            handles.filename = uigetfile('*.csv*');
+            fileName=handles.filename;
+            [fPath, fName, fExt] = fileparts(fileName);
+            switch lower(fExt)
+              case '.ods'
+                d.Value = .33; 
+                d.Message = 'Loading your data';
+                pause(1)
+                RawImportData=xlsread(fileName);
+              case '.csv'	
+                d.Value = .33; 
+                d.Message = 'Loading your data';
+                pause(1)
+                RawImportData=readmatrix(fileName);
+              otherwise  % Under all circumstances SWITCH gets an OTHERWISE!
+                %error('Unexpected file extension: %s', fExt);
                 % display error message
                 msgbox('Please input CSV files')
                 app.ImportStatusLabel.FontColor = [0.6902 0.2549 0.2549];
                 app.ImportStatusLabel.Text = 'The file must be in .csv format';
                 close(d)
                 close(fig)
-            else
-                % Perform calculations
-                % ...
-                d.Value = .33; 
-                d.Message = 'Loading your data';
-                pause(1)
-                % read data
-                fileName = file;
-                RawImportData = csvread(fullfile(path,file));
-                % update field
-                app.ImportStatusLabel.FontColor = [0.1333 0.4588 0.1137];
-                app.ImportStatusLabel.Text = [fileName,' has been imported successfully !'];
             end
+            %if isequal(file,0)
+                % display error message
+                %msgbox('Please input CSV files')
+                %app.ImportStatusLabel.FontColor = [0.6902 0.2549 0.2549];
+                %app.ImportStatusLabel.Text = 'The file must be in .csv format';
+                %close(d)
+                %close(fig)
+            % Perform calculations
+            % ...
+            %d.Value = .33; 
+            %d.Message = 'Loading your data';
+            %pause(1)
+                % read data
+                
+                %fileName = file;
+                %RawImportData = csvread(fullfile(path,file));
+                %RawImportData=readmatrix(filename);
+                % update field
+            app.ImportStatusLabel.FontColor = [0.1333 0.4588 0.1137];
+            app.ImportStatusLabel.Text = [fileName,' has been imported successfully !'];
+            %end
             
             % Perform calculations
             % ...
@@ -37,6 +60,7 @@ classdef DataImportExport
             d.Message = 'Processing the data';
             pause(1)
             
+            RawImportData(1,:)=[];
             RawMzValues=RawImportData(:,1);
             %[RowNumber,ColumnNumber]= size(RawImportData);
             [x,y] = size(RawImportData);
@@ -44,13 +68,14 @@ classdef DataImportExport
             for i = 2:y
                 RawSpectraIntensities(:,i)  = RawImportData(:,i);
             end
+            fprintf('%d loops',y)
             RawSpectraIntensities(:,1)=[];
             % MinIntensity = min(RawMzValues);
             % MaxIntensity = max(RawMzValues);
             [m,n] = size(RawSpectraIntensities);
             NumberOfSpectra = n;
+            fprintf('col: %d row: %d s',m,n)
             
-             
             % Finish calculations
             % ...
             d.Value = 1;
@@ -59,7 +84,7 @@ classdef DataImportExport
             
             importedMSData = MSData(fileName,RawImportData,RawMzValues,RawSpectraIntensities,NumberOfSpectra, m , n);
             DataImportExport.initProjectInfo(app,importedMSData);
-            app.currentProject = MSProject(importedMSData);
+            app.CurrentProject = MSProject(importedMSData);
 
             % Close dialog box
             close(d)
@@ -81,13 +106,11 @@ classdef DataImportExport
         end
         
         function createProject (app)
-            app.currentProject.setProjectInfo(app.ProjectNameEditField.Value);
+            app.CurrentProject.setProjectInfo(app.ProjectNameEditField.Value);
+            app.TabGroup.SelectedTab = app.PreprocessingTab;
+            %Init Raw Data Plot
+            Visualization.plotRawMSData(app);
         end
-        
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
-        end
+      
     end
 end
