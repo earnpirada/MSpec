@@ -22,6 +22,37 @@ classdef PreprocessedMSData < handle
         SectionEnd %ending point of section of interest
         SectionOfInterest %section of interest
         AlignedSectionOfInterest %section of interest
+        
+        
+        %Data Normalization Parameters
+        
+        NormalizeMethod = 'Sum'; % default normalize method
+        NormalizeDisplay = 'All'; % default display option
+        NormalizedSpectra % processed Data kept here
+        %user input
+        ReferencePeak =1;
+        NormalizationNormValue = 1;
+        
+        
+        % Peak Detection and Binning
+        
+        %Sabai part
+        PreproceesedImportData %raw imported data
+        PreproceesedMzValues %raw mz
+        PreproceesedSpectraIntensities %raw y
+        %Detect
+        IsAutoDetected
+        Base
+        Multiplier
+        HeightFilter
+        DetectedPeak
+        PeakThreshold = 0;
+        CutThresholdPeak
+        
+        Cutoff
+        Criterion
+        CMZ
+        PR
     end
     
     methods

@@ -163,6 +163,137 @@ classdef Preprocessing
             app.CurrentProject.PreprocessedData.MinPosition = Is(1,1);
         end
         
+        
+        
+        %================Data Normalization==========
+        
+        function updateNormalizedSpectra(app)
+            % Data Normalization
+                
+            NormalizedSpectra = transpose(app.CurrentProject.PreprocessedData.AlignedSpectra);
+            numberOfSpectra = app.CurrentProject.RawData.NumberOfSpectra;
+            [x,y] = size(app.CurrentProject.RawData.RawSpectraIntensities);
+            sprintf('Raw x: %d, y: %d',x,y)
+            [x,y] = size(app.CurrentProject.PreprocessedData.NormalizedSpectra);
+            sprintf('Normalized x: %d, y: %d',x,y)
+            sprintf(' %d',NormalizedSpectra)
+
+            switch app.CurrentProject.PreprocessedData.NormalizeMethod % Get Tag of selected object.
+                case 'Sum'
+                    for j = 1:numberOfSpectra
+                        colj = NormalizedSpectra(:,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./sum(colj);
+                    end
+                 case 'Area'
+                    for j = 1:numberOfSpectra
+                        colj = NormalizedSpectra(:,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./trapz(app.CurrentProject.RawData.RawMzValues, colj);
+                    end
+                 case 'Norm'
+                    for j = 1:numberOfSpectra
+                        factor = norm(NormalizedSpectra(:,j),app.CurrentProject.PreprocessedData.NormalizationNormValue);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                    end
+                 case 'Median'
+                     for j = 1:numberOfSpectra
+                        factor = median(NormalizedSpectra(:,j));
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                     end
+                 case 'Noise'
+                    for j = 1:numberOfSpectra
+                        % Noise Level
+                        DifVector = diff(NormalizedSpectra(:,j));
+                        % universal thresholding
+                        MedOfDif = median(DifVector);
+                        e = abs(DifVector-MedOfDif);
+                        factor = median(e);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                    end
+                 otherwise %peak
+                    for j = 1:numberOfSpectra
+                        ref = NormalizedSpectra(app.CurrentProject.PreprocessedData.ReferencePeak,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./ref;
+                    end
+            end
+            app.CurrentProject.PreprocessedData.NormalizedSpectra = NormalizedSpectra;
+        end
+        
+        %===========Peak Detection=================
+        
+        function peakDetection(app)
+            if (app.CurrentProject.PreprocessedData.IsAutoDetected)
+                app.CurrentProject.PreprocessedData.DetectedPeak = mspeaks(app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra);
+            else
+                app.CurrentProject.PreprocessedData.DetectedPeak = mspeaks(app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra,'DENOISING',true,'BASE',app.CurrentProject.PreprocessedData.Base,'MULTIPLIER',app.CurrentProject.PreprocessedData.Multiplier,'HEIGHTFILTER',app.CurrentProject.PreprocessedData.HeightFilter);
+            end
+            app.CurrentProject.PreprocessedData.CutThresholdPeak = cellfun(@(p) p(p(:,1)>app.CurrentProject.PreprocessedData.PeakThreshold,:),app.CurrentProject.PreprocessedData.DetectedPeak,'Uniform',false); 
+        end
+        
+        %==========Binning==========================
+        
+        function peakBinning_Hierachical(app)
+            %Put all the peaks into a single array and construct a vector with the spectrogram index for each peak.
+
+            allPeaks = cell2mat(app.CurrentProject.PreprocessedData.CutThresholdPeak);
+            numPeaks = cellfun(@(x) length(x),app.CurrentProject.PreprocessedData.CutThresholdPeak);
+            Sidx = accumarray(cumsum(numPeaks),1);
+            Sidx = cumsum(Sidx)-Sidx;
+            
+            %Create a custom distance function that penalizes clusters containing peaks from the same spectrogram, then perform hierarchical clustering.
+
+            distfun = @(x,y) (x(:,1)-y(:,1)).^2 + (x(:,2)==y(:,2))*10^6;
+
+            tree = linkage(pdist([allPeaks(:,1),Sidx],distfun));
+            clusters = cluster(tree,'CUTOFF',app.CurrentProject.PreprocessedData.Cutoff,'CRITERION','Distance');
+            
+            %The common mass/charge reference vector (CMZ) is found by calculating the centroids for each cluster.
+            CMZ = accumarray(clusters,prod(allPeaks,2))./accumarray(clusters,allPeaks(:,2));
+            
+            % Similarly, the maximum peak intensity of every cluster is also computed.
+
+            PR = accumarray(clusters,allPeaks(:,2),[],@max);
+            [CMZ,h] = sort(CMZ);
+            PR = PR(h);
+            
+            cla(app.Binning_PeakBinningPlot);
+            app.Binning_PeakBinningPlot.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
+            hold(app.Binning_PeakBinningPlot,"on");
+            box(app.Binning_PeakBinningPlot,"on");
+            for i=1:length(CMZ)
+                %plot(app.Binning_PeakBinningPlot,[CMZ CMZ],[-100 inf],'-k');
+                xline(app.Binning_PeakBinningPlot,CMZ(i),'k');
+            end
+            plot(app.Binning_PeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
+            app.CurrentProject.PreprocessedData.CMZ = CMZ;
+            app.CurrentProject.PreprocessedData.PR = PR;
+
+        end
+        
+        
+        function peakBinning_Dynamic(app)
+            currentCMZ = app.CurrentProject.PreprocessedData.CMZ;
+            num = app.CurrentProject.RawData.NumberOfSpectra;
+            PA = nan(numel(currentCMZ),num);
+            DetectedSpectra = app.CurrentProject.PreprocessedData.CutThresholdPeak;
+            for i = 1:num
+                %[j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i},'BAND',15,'WEIGHTS',[1 .1]);
+                [j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i});
+                PA(j,i) = DetectedSpectra{i}(k,2);
+            end
+
+            cla(app.Binning_AlignedPeakBinningPlot);
+            app.Binning_AlignedPeakBinningPlot.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
+            hold (app.Binning_AlignedPeakBinningPlot, "on");
+            box (app.Binning_AlignedPeakBinningPlot, "on");
+            for i=1:length(currentCMZ)
+                xline(app.Binning_AlignedPeakBinningPlot,currentCMZ(i),'k');
+            end
+            plot(app.Binning_AlignedPeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
+            plot(app.Binning_AlignedPeakBinningPlot,currentCMZ,PA,'o')
+            %axis([7200 8500 -10 100])
+            sprintf("%d ",PA)
+        end
+        
     end
 end
 
