@@ -83,7 +83,12 @@ classdef Visualization
             app.Detection_PeakDetectionPlot.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
 
             if isempty(app.Detection_SpectrumtodisplayEditField.Value)
-                plot(app.Detection_PeakDetectionPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra,'b',app.CurrentProject.PreprocessedData.CutThresholdPeak{2}(:,1),app.CurrentProject.PreprocessedData.CutThresholdPeak{2}(:,2),'rx')
+                hold(app.Detection_PeakDetectionPlot,"on");
+                for i=1:app.CurrentProject.RawData.NumberOfSpectra
+                    plot(app.Detection_PeakDetectionPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra(:,i),app.CurrentProject.PreprocessedData.CutThresholdPeak{i}(:,1),app.CurrentProject.PreprocessedData.CutThresholdPeak{i}(:,2),'rx')
+                end
+                hold(app.Detection_PeakDetectionPlot,"off");
+
             else
                 app.UIAxes.Title.String = 'Selected spectra';
                 index = str2num(app.Detection_SpectrumtodisplayEditField.Value);

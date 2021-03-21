@@ -102,6 +102,10 @@ classdef MSpecController
         function startAlignPeakBinning(app)
            Preprocessing.peakBinning_Dynamic(app); 
         end
+        
+        function startRealPeakBinning(app)
+            Preprocessing.startPeakBinning(app);
+        end
     end
 end
 
