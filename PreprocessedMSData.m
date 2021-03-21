@@ -53,6 +53,7 @@ classdef PreprocessedMSData < handle
         Criterion
         CMZ
         PR
+        AlignedDetectedPeak
     end
     
     methods

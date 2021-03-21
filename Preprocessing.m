@@ -32,7 +32,6 @@ classdef Preprocessing
             Preprocessing.baselineCorrection(app);
         end
         
-        
         function baselineCorrection(app)
             %alignment(app);
             baselined = msbackadj(app.CurrentProject.RawData.RawMzValues,transpose(app.CurrentProject.PreprocessedData.AlignedSpectra),'STEPSIZE', app.CurrentProject.PreprocessedData.StepSize, 'WINDOWSIZE', app.CurrentProject.PreprocessedData.WindowSize,'QuantileValue',app.CurrentProject.PreprocessedData.QuantileValue,'SmoothMethod','lowess');        
@@ -257,13 +256,26 @@ classdef Preprocessing
             
             cla(app.Binning_PeakBinningPlot);
             app.Binning_PeakBinningPlot.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
-            hold(app.Binning_PeakBinningPlot,"on");
-            box(app.Binning_PeakBinningPlot,"on");
-            for i=1:length(CMZ)
-                %plot(app.Binning_PeakBinningPlot,[CMZ CMZ],[-100 inf],'-k');
-                xline(app.Binning_PeakBinningPlot,CMZ(i),'k');
+            
+            if isempty(app.Detection_SpectrumtodisplayEditField.Value)
+                hold(app.Binning_PeakBinningPlot,"on");
+                box(app.Binning_PeakBinningPlot,"on");
+                for i=1:length(CMZ)
+                    %plot(app.Binning_PeakBinningPlot,[CMZ CMZ],[-100 inf],'-k');
+                    xline(app.Binning_PeakBinningPlot,CMZ(i),'k');
+                end
+                plot(app.Binning_PeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
+            else
+                index = str2num(app.Detection_SpectrumtodisplayEditField.Value);
+                hold(app.Binning_PeakBinningPlot,"on");
+                box(app.Binning_PeakBinningPlot,"on");
+                for i=1:length(CMZ)
+                    %plot(app.Binning_PeakBinningPlot,[CMZ CMZ],[-100 inf],'-k');
+                    xline(app.Binning_PeakBinningPlot,CMZ(i),'k');
+                end
+                plot(app.Binning_PeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra(:,index))
             end
-            plot(app.Binning_PeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
+            
             app.CurrentProject.PreprocessedData.CMZ = CMZ;
             app.CurrentProject.PreprocessedData.PR = PR;
 
@@ -276,22 +288,83 @@ classdef Preprocessing
             PA = nan(numel(currentCMZ),num);
             DetectedSpectra = app.CurrentProject.PreprocessedData.CutThresholdPeak;
             for i = 1:num
-                %[j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i},'BAND',15,'WEIGHTS',[1 .1]);
-                [j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i});
+                [j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i},'BAND',15,'WEIGHTS',[1 .1]);
+                %[j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i});
                 PA(j,i) = DetectedSpectra{i}(k,2);
             end
 
             cla(app.Binning_AlignedPeakBinningPlot);
             app.Binning_AlignedPeakBinningPlot.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
-            hold (app.Binning_AlignedPeakBinningPlot, "on");
-            box (app.Binning_AlignedPeakBinningPlot, "on");
-            for i=1:length(currentCMZ)
-                xline(app.Binning_AlignedPeakBinningPlot,currentCMZ(i),'k');
+            
+            if isempty(app.Detection_SpectrumtodisplayEditField.Value)
+                hold (app.Binning_AlignedPeakBinningPlot, "on");
+                box (app.Binning_AlignedPeakBinningPlot, "on");
+                for i=1:length(currentCMZ)
+                    xline(app.Binning_AlignedPeakBinningPlot,currentCMZ(i),'k');
+                end
+                plot(app.Binning_AlignedPeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
+                plot(app.Binning_AlignedPeakBinningPlot,currentCMZ,PA,'o')
+            else
+                index = str2num(app.Detection_SpectrumtodisplayEditField.Value);
+                hold (app.Binning_AlignedPeakBinningPlot, "on");
+                box (app.Binning_AlignedPeakBinningPlot, "on");
+                for i=1:length(currentCMZ)
+                    xline(app.Binning_AlignedPeakBinningPlot,currentCMZ(i),'k');
+                end
+                plot(app.Binning_AlignedPeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra(:,index))
+                plot(app.Binning_AlignedPeakBinningPlot,currentCMZ,PA(:,index),'o')
             end
-            plot(app.Binning_AlignedPeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
-            plot(app.Binning_AlignedPeakBinningPlot,currentCMZ,PA,'o')
-            %axis([7200 8500 -10 100])
+            
             sprintf("%d ",PA)
+            app.CurrentProject.PreprocessedData.AlignedDetectedPeak = PA;
+        end
+        
+        function startPeakBinning(app)
+            %[Y,E] = discretize(X,N) divides the data in X into N bins of uniform width, and also returns the bin edges E.
+            %histogram(X) creates a histogram plot of X. The histogram function uses an automatic binning algorithm that 
+            %returns bins with a uniform width, chosen to cover the range of elements in X and reveal the underlying shape 
+            %of the distribution. histogram displays the bins as rectangles such that the height of each rectangle indicates 
+            %the number of elements in the bin.
+            [numMZ,~] = size(app.CurrentProject.RawData.RawMzValues);
+            %numMS = app.CurrentProject.RawData.NumberOfSpectra;
+            [numPeak,numMS] = size(app.CurrentProject.PreprocessedData.CMZ);
+            sprintf("Num of MZPeak %d ",numPeak)
+            
+            detectedPeakSpectra = zeros(numMZ,numMS);
+            for i=1:numPeak
+                for j =1:numMS
+                    index = find(app.CurrentProject.RawData.RawMzValues==app.CurrentProject.PreprocessedData.CMZ(i));
+                    if not(isnan(app.CurrentProject.PreprocessedData.AlignedDetectedPeak(i,j))) 
+                        detectedPeakSpectra(index,j)=app.CurrentProject.PreprocessedData.NormalizedSpectra(i,j);
+                    end
+                end
+            end
+                        
+            cla(app.UIAxes3);
+            app.UIAxes3.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
+            plot(app.UIAxes3,app.CurrentProject.RawData.RawMzValues,detectedPeakSpectra(:,1));
+
+            nbins = 24;
+            h = histogram(app.CurrentProject.RawData.RawMzValues,nbins)
+            sprintf("%d ",h.BinEdges)
+            sprintf("%d ",app.CurrentProject.RawData.RawMzValues)
+            
+            for i=2:h.Numbins
+               for j = 1:numPeak
+                    if (app.CurrentProject.PreprocessedData.CMZ(j)<h.BinEdges(i))
+                        % accum new intensity
+                    else
+                    end
+               end
+            end
+            
+            %binnum = ceil(size(allMZ)/10);
+            %binsum = accumarray(binnum(:), Y(:));
+            %plot((1:size(binsum,1))*10, binsum);
+            %d = size(PA);
+            %sprintf("%d ",d)
+            %sprintf("%d ",PA(:,1))
+            %h = histogram(app.CurrentProject.PreprocessedData.AlignedDetectedPeak)
         end
         
     end
