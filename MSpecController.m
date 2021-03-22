@@ -4,6 +4,12 @@ classdef MSpecController
     end
     
     methods (Static)
+        
+        function initProjectInfo(app)
+            app.ProjectInfo_ProjectNameEditField.Value = app.CurrentProject.ProjectName;
+            app.ProjectInfo_ImportedFileEditField.Value = app.CurrentProject.RawData.FileName;
+        end
+        
         function plotButtonPushedHandler(app)
             
             fig = uifigure;

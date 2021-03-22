@@ -110,6 +110,7 @@ classdef DataImportExport
             app.TabGroup.SelectedTab = app.PreprocessingTab;
             %Init Raw Data Plot
             Visualization.plotRawMSData(app);
+            MSpecController.initProjectInfo(app);
         end
       
     end
