@@ -10,15 +10,21 @@ classdef DataImportExport
                 'Message','Opening the import window');
             pause(.5)
             handles.filename = uigetfile('*.csv*');
-            filename=handles.filename;
-            [fPath, fName, fExt] = fileparts(filename);
+            fileName=handles.filename;
+            [fPath, fName, fExt] = fileparts(fileName);
             switch lower(fExt)
               case '.ods'
-                RawImportData=xlsread(filename);
+                d.Value = .33; 
+                d.Message = 'Loading your data';
+                pause(1)
+                RawImportData=xlsread(fileName);
               case '.csv'	
-                RawImportData=readmatrix(filename);
+                d.Value = .33; 
+                d.Message = 'Loading your data';
+                pause(1)
+                RawImportData=readmatrix(fileName);
               otherwise  % Under all circumstances SWITCH gets an OTHERWISE!
-                error('Unexpected file extension: %s', fExt);
+                %error('Unexpected file extension: %s', fExt);
                 % display error message
                 msgbox('Please input CSV files')
                 app.ImportStatusLabel.FontColor = [0.6902 0.2549 0.2549];
@@ -33,21 +39,20 @@ classdef DataImportExport
                 %app.ImportStatusLabel.Text = 'The file must be in .csv format';
                 %close(d)
                 %close(fig)
-            else
-                % Perform calculations
-                % ...
-                d.Value = .33; 
-                d.Message = 'Loading your data';
-                pause(1)
+            % Perform calculations
+            % ...
+            %d.Value = .33; 
+            %d.Message = 'Loading your data';
+            %pause(1)
                 % read data
                 
                 %fileName = file;
                 %RawImportData = csvread(fullfile(path,file));
-                RawImportData=readmatrix(filename);
+                %RawImportData=readmatrix(filename);
                 % update field
-                app.ImportStatusLabel.FontColor = [0.1333 0.4588 0.1137];
-                app.ImportStatusLabel.Text = [fileName,' has been imported successfully !'];
-            end
+            app.ImportStatusLabel.FontColor = [0.1333 0.4588 0.1137];
+            app.ImportStatusLabel.Text = [fileName,' has been imported successfully !'];
+            %end
             
             % Perform calculations
             % ...
@@ -70,9 +75,7 @@ classdef DataImportExport
             [m,n] = size(RawSpectraIntensities);
             NumberOfSpectra = n;
             fprintf('col: %d row: %d s',m,n)
-
             
-             
             % Finish calculations
             % ...
             d.Value = 1;
@@ -107,6 +110,15 @@ classdef DataImportExport
             app.TabGroup.SelectedTab = app.PreprocessingTab;
             %Init Raw Data Plot
             Visualization.plotRawMSData(app);
+            MSpecController.initProjectInfo(app);
+        end
+        
+        function exportPreprocessedData(app)
+            [file,path] = uiputfile('*.csv');
+            filename = fullfile(path,file);
+            %Arr = transpose(0:app.RowNumber-1);
+            OutputArray = [app.RawMZValues app.NormalizedArray];
+            csvwrite(filename,OutputArray);
         end
       
     end

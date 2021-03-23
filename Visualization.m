@@ -43,11 +43,6 @@ classdef Visualization
             switch app.CurrentProject.PreprocessedData.NormalizeDisplay
                 case 'All'
                     plot(app.Normalization_NormalizedMSPlot, app.CurrentProject.RawData.RawMzValues, app.CurrentProject.PreprocessedData.NormalizedSpectra)
-                    %hold(app.Normalization_NormalizedMSPlot,"on");
-                    %for k = 1:app.ColumnNumber
-                        %stem(app.Normalization_NormalizedMSPlot, app.XAxisPlot, app.NormalizedArray(:, k))
-                    %end
-                    %hold(app.Normalization_NormalizedMSPlot,"off");
                 case 'Single'
                     [x,y] = size(app.CurrentProject.RawData.RawMzValues);
                     sprintf('MZ x: %d, y: %d',x,y)
@@ -105,6 +100,53 @@ classdef Visualization
             xlabel('Mass/Charge (M/Z)')
             ylabel('Relative Intensity')
             title('Common Mass/Charge (M/Z) Locations found by Clustering') 
+        end
+        
+        function plotBinningEdgeList(app)
+            edgeList = app.CurrentProject.PreprocessedData.EdgeList;
+            commonMZ = app.CurrentProject.PreprocessedData.CMZ;
+            
+            cla(app.Binning_EdgeListPlot)
+
+            %axes(app.Binning_EdgeListPlot,'NextPlot','add',...           %# Add subsequent plots to the axes,
+            % 'DataAspectRatio',[1 1 1],...  %#   match the scaling of each axis,
+            % 'YLim',[0 eps],...             %#   set the y axis limit (tiny!),
+            % 'Color','none');               %#   and don't use a background color
+            hold(app.Binning_EdgeListPlot,"on");
+            plot(app.Binning_EdgeListPlot,commonMZ,0,'b.','MarkerSize',10);
+            plot(app.Binning_EdgeListPlot,edgeList,0,'r*','MarkerSize',10);
+            hold(app.Binning_EdgeListPlot,"off");
+
+        end
+        
+        function plotBinningSpectra(app)
+            cla(app.PeakBinningFinalPlot)
+            app.PeakBinningFinalPlot.XLim = [0 app.CurrentProject.PreprocessedData.BinIndexList(end)+1];
+            
+            switch app.CurrentProject.PreprocessedData.BinningDisplay
+                case 'All'
+                    bar(app.PeakBinningFinalPlot,app.CurrentProject.PreprocessedData.BinIndexList, app.CurrentProject.PreprocessedData.BinnedSpectra);
+                case 'Single'
+                    bar(app.PeakBinningFinalPlot,app.CurrentProject.PreprocessedData.BinIndexList, app.CurrentProject.PreprocessedData.BinnedSpectra(:, app.Binning_SamplePointSpinner.Value));
+                case 'Multiple'
+                    retreivedata = get(app.Binning_SelectDataTable,'data');
+                    hold(app.PeakBinningFinalPlot,"on");
+                    for k = 1:length(retreivedata(:,2))
+                        if retreivedata(k,2) == 1
+                            bar(app.PeakBinningFinalPlot,app.CurrentProject.PreprocessedData.BinIndexList, app.CurrentProject.PreprocessedData.BinnedSpectra(:, k));
+                        end
+                    end
+                    hold(app.PeakBinningFinalPlot,"off");
+            end     
+        end
+        
+        function displayBinDataTable(app)
+            app.Binning_DataTable.RowName = 'numbered';
+            app.Binning_DataTable.ColumnName = 'numbered';
+
+            app.Binning_DataTable.Data = [app.CurrentProject.PreprocessedData.BinIndexList; app.CurrentProject.PreprocessedData.EdgeList];
+            s = uistyle('HorizontalAlignment','center');
+            addStyle(app.Binning_DataTable,s);
         end
         
     end
