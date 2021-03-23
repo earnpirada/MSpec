@@ -112,6 +112,14 @@ classdef DataImportExport
             Visualization.plotRawMSData(app);
             MSpecController.initProjectInfo(app);
         end
+        
+        function exportPreprocessedData(app)
+            [file,path] = uiputfile('*.csv');
+            filename = fullfile(path,file);
+            %Arr = transpose(0:app.RowNumber-1);
+            OutputArray = [app.CurrentProject.RawData.RawMzValues app.CurrentProject.PreprocessedData.BaselinedSpectra];
+            csvwrite(filename,OutputArray);
+        end
       
     end
 end
