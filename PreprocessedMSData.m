@@ -54,6 +54,11 @@ classdef PreprocessedMSData < handle
         CMZ
         PR
         AlignedDetectedPeak
+        
+        EdgeList
+        BinIndexList
+        BinnedSpectra
+        BinningDisplay = 'All';
     end
     
     methods
