@@ -111,7 +111,32 @@ classdef MSpecController
         
         function startRealPeakBinning(app)
             Preprocessing.startPeakBinning(app);
+            if isempty(app.CurrentProject.PreprocessedData.EdgeList)
+                msg = 'No Edges found.';
+                errordlg(msg,'Try Again');
+            else
+                Visualization.plotBinningEdgeList(app);
+                Visualization.plotBinningSpectra(app);
+                MSpecController.Binning_displaySamplePointOption(app);
+                Visualization.displayBinDataTable(app)
+            end
         end
+        
+        function Binning_displaySamplePointOption(app)
+            SampleIndex = transpose(1:app.CurrentProject.RawData.NumberOfSpectra);
+            F = false(app.CurrentProject.RawData.NumberOfSpectra,1);
+            F = [SampleIndex F];
+            app.Binning_SelectDataTable.Data = F;
+            app.Binning_SelectDataTable.ColumnFormat = {'char', 'logical'};
+            s = uistyle('HorizontalAlignment','center');
+            addStyle(app.Binning_SelectDataTable,s);
+        end
+        
+        function Binning_updateBinningPlot(app)
+            Visualization.plotBinningSpectra(app);
+        end
+        
+        
     end
 end
 
