@@ -120,6 +120,22 @@ classdef DataImportExport
             OutputArray = [app.CurrentProject.RawData.RawMzValues app.CurrentProject.PreprocessedData.BaselinedSpectra];
             csvwrite(filename,OutputArray);
         end
+        
+        function exportBinnedData(app)
+            [file,path] = uiputfile('*.csv');
+            filename = fullfile(path,file);
+            OutputArray = [app.CurrentProject.PreprocessedData.BinIndexList app.CurrentProject.PreprocessedData.BinnedSpectra];
+            csvwrite(filename,OutputArray);
+        end
+        
+        function ExportBinningMap(app)
+            
+            % TO be continued
+            [file,path] = uiputfile('*.csv');
+            filename = fullfile(path,file);
+            OutputArray = [app.CurrentProject.PreprocessedData.BinIndexList app.CurrentProject.PreprocessedData.BinnedSpectra];
+            csvwrite(filename,OutputArray);
+        end
       
     end
 end
