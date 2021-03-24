@@ -5,9 +5,57 @@ classdef MSpecController
     
     methods (Static)
         
+        function getRecentFiles(app)
+            % where MS projects are stored
+            directory = '.\projects';
+            MyFolderInfo = dir(fullfile(directory,'*.mat'))
+            [numFile,~] = size(MyFolderInfo);
+            fileNameList = {};
+            for i = 1:numFile
+                fileNameList{end+1} = MyFolderInfo(i).name(1:end-4);
+            end
+            app.RecentFileListBox.Items = fileNameList;
+        end
+        
+        function loadRecentFiles(app)
+            selectedFile = app.RecentFileListBox.Value;
+            Location = pwd;
+            dir = '\projects';
+            Location = strcat(Location,dir);
+            FileName = strcat(selectedFile,'.mat');
+            loadedData = load(fullfile(Location, FileName))
+            app.CurrentProject = loadedData.ProjectData;
+        end
+        
         function initProjectInfo(app)
             app.ProjectInfo_ProjectNameEditField.Value = app.CurrentProject.ProjectName;
             app.ProjectInfo_ImportedFileEditField.Value = app.CurrentProject.RawData.FileName;
+        end
+        
+        function saveProject(app)
+            projectName = app.CurrentProject.ProjectName;            
+            Location = pwd; 
+            ProjectData = app.CurrentProject;
+            dir = '\projects';
+            Location = strcat(Location,dir)
+            save(fullfile(Location, projectName), 'ProjectData');
+        end
+        
+        function temp(app)
+            startingFolder = 'C:\Program Files\MATLAB'
+            if ~exist(startingFolder, 'dir')
+                % If that folder doesn't exist, just start in the current folder.
+                startingFolder = pwd;
+            end
+            % Put in the name of the mat file that the user wants to save.
+            % defaultFileName = fullfile(startingFolder, '*.mat')
+            [file,path] = uiputfile('myMatrix.mat','Save file name');
+            if file == 0
+                % User clicked the Cancel button.
+                return;
+            end
+            fullFileName = fullfile(path, file)
+            save(fullFileName)
         end
         
         function plotButtonPushedHandler(app)
