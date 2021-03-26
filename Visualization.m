@@ -121,7 +121,7 @@ classdef Visualization
         
         function plotBinningSpectra(app)
             cla(app.PeakBinningFinalPlot)
-            app.PeakBinningFinalPlot.XLim = [0 app.CurrentProject.PreprocessedData.BinIndexList(end)+1];
+            app.PeakBinningFinalPlot.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
             
             switch app.CurrentProject.PreprocessedData.BinningDisplay
                 case 'All'
@@ -141,12 +141,12 @@ classdef Visualization
         end
         
         function displayBinDataTable(app)
-            app.Binning_DataTable.RowName = 'numbered';
-            app.Binning_DataTable.ColumnName = 'numbered';
+            app.Binning_UITable.RowName = 'numbered';
+            app.Binning_UITable.ColumnName = 'numbered';
 
-            app.Binning_DataTable.Data = [app.CurrentProject.PreprocessedData.BinIndexList; app.CurrentProject.PreprocessedData.EdgeList];
+            app.Binning_UITable.Data = [app.CurrentProject.PreprocessedData.BinIndexList; app.CurrentProject.PreprocessedData.EdgeList];
             s = uistyle('HorizontalAlignment','center');
-            addStyle(app.Binning_DataTable,s);
+            addStyle(app.Binning_UITable,s);
         end
         
     end
