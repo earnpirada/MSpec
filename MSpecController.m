@@ -225,6 +225,7 @@ classdef MSpecController
                         Visualization.plotBinningEdgeList(app);
                         Visualization.plotBinningSpectra(app);
                         MSpecController.Binning_displaySamplePointOption(app);
+                        Visualization.displayBinDataTable(app);
                     end
                 otherwise % use parameters
                     Preprocessing.startPeakBinning(app); % Find Edges and Bin data
@@ -235,6 +236,7 @@ classdef MSpecController
                         Visualization.plotBinningEdgeList(app);
                         Visualization.plotBinningSpectra(app);
                         MSpecController.Binning_displaySamplePointOption(app);
+                        Visualization.displayBinDataTable(app);
                     end
             end
             
