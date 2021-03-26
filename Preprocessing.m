@@ -327,6 +327,20 @@ classdef Preprocessing
             edgeList = generateBins(app.CurrentProject.PreprocessedData.CMZ, maxPeaks, tolerance, method);
             app.CurrentProject.PreprocessedData.EdgeList = edgeList;
             
+            if isempty(edgeList)
+                app.CurrentProject.PreprocessedData.BinIndexList = [];
+                app.CurrentProject.PreprocessedData.BinnedSpectra = [];
+            else
+                binnedData = generateBinsFromEdges(edgeList, app.CurrentProject.RawData.RawMzValues, app.CurrentProject.PreprocessedData.NormalizedSpectra);
+                app.CurrentProject.PreprocessedData.BinIndexList = binnedData(:,1);
+                binnedData(:,1) = [];
+                app.CurrentProject.PreprocessedData.BinnedSpectra = binnedData;
+            end
+        end
+        
+        function startPeakBinningFromEdges(app)
+            
+            edgeList = app.CurrentProject.PreprocessedData.ImportedEdgeList;
             binnedData = generateBinsFromEdges(edgeList, app.CurrentProject.RawData.RawMzValues, app.CurrentProject.PreprocessedData.NormalizedSpectra);
             
             app.CurrentProject.PreprocessedData.BinIndexList = binnedData(:,1);
@@ -334,7 +348,6 @@ classdef Preprocessing
 
             app.CurrentProject.PreprocessedData.BinnedSpectra = binnedData;
 
-            sprintf(" %d",app.CurrentProject.PreprocessedData.BinnedSpectra)
             
         end
                 

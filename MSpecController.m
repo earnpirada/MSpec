@@ -214,16 +214,30 @@ classdef MSpecController
         end
         
         function startRealPeakBinning(app)
-            Preprocessing.startPeakBinning(app);
-            if isempty(app.CurrentProject.PreprocessedData.EdgeList)
-                msg = 'No Edges found.';
-                errordlg(msg,'Try Again');
-            else
-                Visualization.plotBinningEdgeList(app);
-                Visualization.plotBinningSpectra(app);
-                MSpecController.Binning_displaySamplePointOption(app);
-                %Visualization.displayBinDataTable(app)
+            switch app.Binning_ImportEdgesCheckBox.Value
+                case true % use imported Edge
+                    if app.Binning_FileLabel.Text == "Choose File . . ." % users not yet import the file
+                        % error window
+                        msg = 'No Edges Imported';
+                        errordlg('Please import the file first',msg);
+                    else
+                        Preprocessing.startPeakBinningFromEdges(app); % Find Edges and Bin data
+                        Visualization.plotBinningEdgeList(app);
+                        Visualization.plotBinningSpectra(app);
+                        MSpecController.Binning_displaySamplePointOption(app);
+                    end
+                otherwise % use parameters
+                    Preprocessing.startPeakBinning(app); % Find Edges and Bin data
+                    if isempty(app.CurrentProject.PreprocessedData.EdgeList)
+                        msg = 'No Edges found.';
+                        errordlg('Please re-adjust the parameters and try again',msg);
+                    else
+                        Visualization.plotBinningEdgeList(app);
+                        Visualization.plotBinningSpectra(app);
+                        MSpecController.Binning_displaySamplePointOption(app);
+                    end
             end
+            
         end
         
         function Binning_displaySamplePointOption(app)

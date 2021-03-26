@@ -56,6 +56,8 @@ classdef PreprocessedMSData < handle
         AlignedDetectedPeak
         
         EdgeList
+        ImportedEdgeListFileName
+        ImportedEdgeList
         BinIndexList
         BinnedSpectra
         BinningDisplay = 'All';
