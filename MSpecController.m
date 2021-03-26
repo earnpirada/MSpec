@@ -5,6 +5,28 @@ classdef MSpecController
     
     methods (Static)
         
+        function initAppFromFiles(app)
+            prj = app.CurrentProject;
+            % PreProcessing
+            Visualization.plotRawMSData(app);
+            % set UI parameters
+            app.Preprocessing_WindowSizeEditField.Value = prj.PreprocessedData.WindowSize; %window size
+            app.Preprocessing_StepsizeEditField.Value = prj.PreprocessedData.StepSize; %step size
+            app.Preprocessing_QuantilevalueEditField.Value = prj.PreprocessedData.QuantileValue; %quantile value
+        
+            app.Preprocessing_ReferenceSpectrumEditField.Value = prj.PreprocessedData.ReferenceSpectrum; %alignment refernce spectrum
+            app.Preprocessing_MinimumsegementsizeallowedEditField.Value = prj.PreprocessedData.SegmentSize; %alignment segment size
+            app.Preprocessing_MaximumshiftallowedEditField.Value = prj.PreprocessedData.ShiftAllowance; %alignment shift alowance
+            
+            app.Preprocessing_SpectrumtodisplayEditField.Value = num2str(prj.PreprocessedData.DisplayingSpectra); %spectra to display
+            app.Preprocessing_StartingpointEditField.Value = num2str(prj.PreprocessedData.SectionStart); %starting point of section of interest
+            app.Preprocessing_EndingpointEditField.Value = num2str(prj.PreprocessedData.SectionEnd); %ending point of section of interest
+            
+            % Plotpreprocessed
+            Visualization.plotPreprocessedMSData(app);
+            
+        end
+        
         function getRecentFiles(app)
             % where MS projects are stored
             directory = '.\projects';
@@ -25,6 +47,9 @@ classdef MSpecController
             FileName = strcat(selectedFile,'.mat');
             loadedData = load(fullfile(Location, FileName))
             app.CurrentProject = loadedData.ProjectData;
+            
+            %=========IMPORTANT================
+            MSpecController.initAppFromFiles(app);
         end
         
         function initProjectInfo(app)
@@ -37,11 +62,41 @@ classdef MSpecController
             Location = pwd; 
             ProjectData = app.CurrentProject;
             dir = '\projects';
-            Location = strcat(Location,dir)
-            save(fullfile(Location, projectName), 'ProjectData');
+            Location = strcat(Location,dir);
+            FileName = strcat(projectName,'.mat');
+
+            % if the file already exists then just save
+            if exist(fullfile(Location, FileName), 'file')
+                % File exists.  Do stuff....
+                fig = uifigure;
+                msg = 'Saving these changes will overwrite previous changes.';
+                title = 'Confirm Save';
+                selection = uiconfirm(fig,msg,title,...
+                    'Options',{'Overwrite','Save as new','Cancel'},...
+                    'DefaultOption',2,'CancelOption',3);
+                if selection == "Overwrite"
+                    save(fullfile(Location, projectName), 'ProjectData');
+                elseif selection == "Save as new"
+                    % create new project to be done later
+                else
+                    % do nothing
+                end
+                close(fig)
+            else
+                % File does not exist.
+                save(fullfile(Location, projectName), 'ProjectData');
+                fig = uifigure;
+                msg = sprintf('Your project has been saved to %s',Location);
+                selection = uiconfirm(fig,msg,'Saved Sucessfully','Options',{'OK'},'Icon','success');
+                if selection == "OK"
+                    close(fig)
+                end
+            end 
         end
         
         function temp(app)
+            % ----------- NOT USED
+            % ----------- kept here for future use
             startingFolder = 'C:\Program Files\MATLAB'
             if ~exist(startingFolder, 'dir')
                 % If that folder doesn't exist, just start in the current folder.
@@ -103,6 +158,7 @@ classdef MSpecController
             app.TabGroup.SelectedTab = app.NormalizationTab;
             MSpecController.setDefaultReferencePeak(app);
             MSpecController.DisplaySamplePointOption(app);
+            Preprocessing.updateNormalizedSpectra(app);
         end
         
         function updateNormalizedSpectra(app)
@@ -166,7 +222,7 @@ classdef MSpecController
                 Visualization.plotBinningEdgeList(app);
                 Visualization.plotBinningSpectra(app);
                 MSpecController.Binning_displaySamplePointOption(app);
-                Visualization.displayBinDataTable(app)
+                %Visualization.displayBinDataTable(app)
             end
         end
         
