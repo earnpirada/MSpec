@@ -1,0 +1,10 @@
+classdef ReportGeneration
+    
+    properties
+    end
+    
+    methods (Static)
+        function 
+    end
+end
+

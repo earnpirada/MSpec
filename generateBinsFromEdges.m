@@ -7,7 +7,8 @@ function binArray= generateBinsFromEdges(edgeList,MZvalues,intensities)
     
     [~,edgeNumber] = (size(edgeList));
     sprintf("number of edges: %d", edgeNumber)
-    binIndexList = 1:edgeNumber
+    % number 1 to n bins
+    binIndexList = 1:edgeNumber;
     allBinIntensityList = [];
     
     % Data Validation is not done yet.
@@ -15,6 +16,7 @@ function binArray= generateBinsFromEdges(edgeList,MZvalues,intensities)
     for k = 1:SpecNumber    % for each spectra
         binIntensityList = [];  % currrent spec accumulate intensities
         currentAccumulate = 0;  % currrent m/z accumulate intensities
+        massList = []; % used to find mean mass
         edgeIndex = 1;
     
         for i = 1:MZNumber % for each m/z
@@ -22,22 +24,28 @@ function binArray= generateBinsFromEdges(edgeList,MZvalues,intensities)
             % edgelist first
             % if edgeIndex > size(edgeList) % stop increasing edgeindex
             %   currentAccumulate = currentAccumulate + dataArray(i,k+1);
-                
                 %=====
             if dataArray(i,1) <= edgeList(edgeIndex) % if current MZ is less than equal current edge
                 currentAccumulate = currentAccumulate + dataArray(i,k+1);
+                massList(end+1) = dataArray(i,1);
                 %sprintf("Acc: %d ---> Acc: %d", dataArray(i,k+1), currentAccumulate)
             else
                 % save current bin
                 %sprintf("spec %d break at edge: %d, m/z value: %d , Acc: %d", k, edgeIndex,dataArray(i,1), currentAccumulate)
                 binIntensityList = [binIntensityList; currentAccumulate];
+                binIndexList(edgeIndex) = mean(massList);
                 edgeIndex = edgeIndex+1;
-                currentAccumulate = dataArray(i,k+1);
+                currentAccumulate = dataArray(i,k+1); %reset
+                massList = [];
+                massList(end+1) = dataArray(i,1);
+
             end
         end
         % finalize the last step
         binIntensityList = [binIntensityList; currentAccumulate];
+        binIndexList(edgeIndex) = mean(massList);
         allBinIntensityList = [allBinIntensityList binIntensityList];
     end    
+    binIndexList
     binArray = [transpose(binIndexList) allBinIntensityList];
 end
