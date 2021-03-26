@@ -117,8 +117,31 @@ classdef DataImportExport
             [file,path] = uiputfile('*.csv');
             filename = fullfile(path,file);
             %Arr = transpose(0:app.RowNumber-1);
-            OutputArray = [app.RawMZValues app.NormalizedArray];
+            OutputArray = [app.CurrentProject.RawData.RawMzValues app.CurrentProject.PreprocessedData.BaselinedSpectra];
             csvwrite(filename,OutputArray);
+        end
+        
+        function exportBinnedData(app)
+            [file,path] = uiputfile('*.csv');
+            filename = fullfile(path,file);
+            OutputArray = [app.CurrentProject.PreprocessedData.BinIndexList app.CurrentProject.PreprocessedData.BinnedSpectra];
+            csvwrite(filename,OutputArray);
+        end
+        
+        function exportBinEdges(app)
+            [file,path] = uiputfile('*.csv');
+            filename = fullfile(path,file);
+            OutputArray = [app.CurrentProject.PreprocessedData.EdgeList];
+            csvwrite(filename,OutputArray);
+        end
+        
+        function importBinEdges(app)
+            handles.filename = uigetfile('*.csv*');
+            fileName=handles.filename;
+            [~, ~, fExt] = fileparts(fileName);
+            edgeList=readmatrix(fileName);
+            app.Binning_FileLabel.Text =
+            app.CurrentProject.PreprocessedData.ImportedEdgeList = edgeList;
         end
       
     end

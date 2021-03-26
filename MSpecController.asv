@@ -63,9 +63,10 @@ classdef MSpecController
             ProjectData = app.CurrentProject;
             dir = '\projects';
             Location = strcat(Location,dir);
-            
+            FileName = strcat(projectName,'.mat');
+
             % if the file already exists then just save
-            if exist(fullfile(Location, projectName), 'file')
+            if exist(fullfile(Location, FileName), 'file')
                 % File exists.  Do stuff....
                 fig = uifigure;
                 msg = 'Saving these changes will overwrite previous changes.';
@@ -77,17 +78,19 @@ classdef MSpecController
                     save(fullfile(Location, projectName), 'ProjectData');
                 elseif selection == "Save as new"
                     % create new project to be done later
-                    close(fig)
                 else
                     % do nothing
-                    close(fig)
                 end
+                close(fig)
             else
                 % File does not exist.
                 save(fullfile(Location, projectName), 'ProjectData');
                 fig = uifigure;
-                msg = 'Your project has been saved to the ./projects directory';
-                selection = uiconfirm(fig,'Saved Sucessfuly','Your project','Options',{'OK'},'Icon','success');
+                msg = sprintf('Your project has been saved to %s',Location);
+                selection = uiconfirm(fig,msg,'Saved Sucessfully','Options',{'OK'},'Icon','success');
+                if selection == "OK"
+                    close(fig)
+                end
             end 
         end
         
@@ -155,6 +158,7 @@ classdef MSpecController
             app.TabGroup.SelectedTab = app.NormalizationTab;
             MSpecController.setDefaultReferencePeak(app);
             MSpecController.DisplaySamplePointOption(app);
+            Preprocessing.updateNormalizedSpectra(app);
         end
         
         function updateNormalizedSpectra(app)
@@ -210,16 +214,31 @@ classdef MSpecController
         end
         
         function startRealPeakBinning(app)
-            Preprocessing.startPeakBinning(app);
-            if isempty(app.CurrentProject.PreprocessedData.EdgeList)
-                msg = 'No Edges found.';
-                errordlg(msg,'Try Again');
-            else
-                Visualization.plotBinningEdgeList(app);
-                Visualization.plotBinningSpectra(app);
-                MSpecController.Binning_displaySamplePointOption(app);
-                %Visualization.displayBinDataTable(app)
+            switch app.Binning_ImportEdgesCheckBox.Value
+                case true % use imported Edge
+                    if app.Binning_FileLabel.Text == "Choose File . . ." % users not yet import the file
+                        % error window
+                        msg = 'No Edges Imported';
+                        errordlg('Please import the file first',msg);
+                    else
+                        Preprocessing.startPeakBinningFromEdges(app); % Find Edges and Bin data
+                        Visualization.plotBinningEdgeList(app);
+                        Visualization.plotBinningSpectra(app);
+                        MSpecController.Binning_displaySamplePointOption(app);
+                    end
+                otherwise % use parameters
+                    Preprocessing.startPeakBinning(app); % Find Edges and Bin data
+                    if isempty(app.CurrentProject.PreprocessedData.EdgeList)
+                        msg = 'No Edges found.';
+                        errordlg('Please re-adjust the parameters and try again',msg);
+                    else
+                        Visualization.plotBinningEdgeList(app);
+                        Visualization.plotBinningSpectra(app);
+                        MSpecController.Binning_displaySamplePointOption(app);
+                        displayBinDataTable(app);
+                    end
             end
+            
         end
         
         function Binning_displaySamplePointOption(app)

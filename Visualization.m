@@ -141,12 +141,12 @@ classdef Visualization
         end
         
         function displayBinDataTable(app)
-            app.Binning_UITable.RowName = 'numbered';
-            app.Binning_UITable.ColumnName = 'numbered';
+            %app.UITable.RowName = 'numbered';
+            %app.UITable.ColumnName = 'numbered';
 
-            app.Binning_UITable.Data = [app.CurrentProject.PreprocessedData.BinIndexList; app.CurrentProject.PreprocessedData.EdgeList];
+            app.Binning_Table.Data = [app.CurrentProject.PreprocessedData.BinIndexList app.CurrentProject.PreprocessedData.BinnedSpectra];
             s = uistyle('HorizontalAlignment','center');
-            addStyle(app.Binning_UITable,s);
+            addStyle(app.Binning_Table,s);
         end
         
     end

@@ -128,13 +128,19 @@ classdef DataImportExport
             csvwrite(filename,OutputArray);
         end
         
-        function ExportBinningMap(app)
-            
-            % TO be continued
+        function exportBinEdges(app)
             [file,path] = uiputfile('*.csv');
             filename = fullfile(path,file);
-            OutputArray = [app.CurrentProject.PreprocessedData.BinIndexList app.CurrentProject.PreprocessedData.BinnedSpectra];
+            OutputArray = [app.CurrentProject.PreprocessedData.EdgeList];
             csvwrite(filename,OutputArray);
+        end
+        
+        function importBinEdges(app)
+            handles.filename = uigetfile('*.csv*');
+            fileName=handles.filename;
+            edgeList=readmatrix(fileName);
+            app.Binning_FileLabel.Text = fileName;
+            app.CurrentProject.PreprocessedData.ImportedEdgeList = edgeList;
         end
       
     end
