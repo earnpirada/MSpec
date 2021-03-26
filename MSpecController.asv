@@ -5,9 +5,109 @@ classdef MSpecController
     
     methods (Static)
         
+        function initAppFromFiles(app)
+            prj = app.CurrentProject;
+            % PreProcessing
+            Visualization.plotRawMSData(app);
+            % set UI parameters
+            app.Preprocessing_WindowSizeEditField.Value = prj.PreprocessedData.WindowSize; %window size
+            app.Preprocessing_StepsizeEditField.Value = prj.PreprocessedData.StepSize; %step size
+            app.Preprocessing_QuantilevalueEditField.Value = prj.PreprocessedData.QuantileValue; %quantile value
+        
+            app.Preprocessing_ReferenceSpectrumEditField.Value = prj.PreprocessedData.ReferenceSpectrum; %alignment refernce spectrum
+            app.Preprocessing_MinimumsegementsizeallowedEditField.Value = prj.PreprocessedData.SegmentSize; %alignment segment size
+            app.Preprocessing_MaximumshiftallowedEditField.Value = prj.PreprocessedData.ShiftAllowance; %alignment shift alowance
+            
+            app.Preprocessing_SpectrumtodisplayEditField.Value = num2str(prj.PreprocessedData.DisplayingSpectra); %spectra to display
+            app.Preprocessing_StartingpointEditField.Value = num2str(prj.PreprocessedData.SectionStart); %starting point of section of interest
+            app.Preprocessing_EndingpointEditField.Value = num2str(prj.PreprocessedData.SectionEnd); %ending point of section of interest
+            
+            % Plotpreprocessed
+            Visualization.plotPreprocessedMSData(app);
+            
+        end
+        
+        function getRecentFiles(app)
+            % where MS projects are stored
+            directory = '.\projects';
+            MyFolderInfo = dir(fullfile(directory,'*.mat'))
+            [numFile,~] = size(MyFolderInfo);
+            fileNameList = {};
+            for i = 1:numFile
+                fileNameList{end+1} = MyFolderInfo(i).name(1:end-4);
+            end
+            app.RecentFileListBox.Items = fileNameList;
+        end
+        
+        function loadRecentFiles(app)
+            selectedFile = app.RecentFileListBox.Value;
+            Location = pwd;
+            dir = '\projects';
+            Location = strcat(Location,dir);
+            FileName = strcat(selectedFile,'.mat');
+            loadedData = load(fullfile(Location, FileName))
+            app.CurrentProject = loadedData.ProjectData;
+            
+            %=========IMPORTANT================
+            MSpecController.initAppFromFiles(app);
+        end
+        
         function initProjectInfo(app)
             app.ProjectInfo_ProjectNameEditField.Value = app.CurrentProject.ProjectName;
             app.ProjectInfo_ImportedFileEditField.Value = app.CurrentProject.RawData.FileName;
+        end
+        
+        function saveProject(app)
+            projectName = app.CurrentProject.ProjectName;            
+            Location = pwd; 
+            ProjectData = app.CurrentProject;
+            dir = '\projects';
+            Location = strcat(Location,dir);
+            
+            % if the file already exists then just save
+            if exist(fullfile(Location, projectName), 'file')
+                % File exists.  Do stuff....
+                fig = uifigure;
+                msg = 'Saving these changes will overwrite previous changes.';
+                title = 'Confirm Save';
+                selection = uiconfirm(fig,msg,title,...
+                    'Options',{'Overwrite','Save as new','Cancel'},...
+                    'DefaultOption',2,'CancelOption',3);
+                if selection == "Overwrite"
+                    save(fullfile(Location, projectName), 'ProjectData');
+                elseif selection == "Save as new"
+                    % create new project to be done later
+                    close(fig)
+                else
+                    % do nothing
+                    close(fig)
+                end
+            else
+                % File does not exist.
+                save(fullfile(Location, projectName), 'ProjectData');
+                fig = uifigure;
+                msg = 'Your project has been saved to the ./projects directory';
+                selection = uiconfirm(fig,'Saved Sucessfuly','Your project','Options',{'OK'},'Icon','success');
+            end 
+        end
+        
+        function temp(app)
+            % ----------- NOT USED
+            % ----------- kept here for future use
+            startingFolder = 'C:\Program Files\MATLAB'
+            if ~exist(startingFolder, 'dir')
+                % If that folder doesn't exist, just start in the current folder.
+                startingFolder = pwd;
+            end
+            % Put in the name of the mat file that the user wants to save.
+            % defaultFileName = fullfile(startingFolder, '*.mat')
+            [file,path] = uiputfile('myMatrix.mat','Save file name');
+            if file == 0
+                % User clicked the Cancel button.
+                return;
+            end
+            fullFileName = fullfile(path, file)
+            save(fullFileName)
         end
         
         function plotButtonPushedHandler(app)
@@ -117,7 +217,8 @@ classdef MSpecController
             else
                 Visualization.plotBinningEdgeList(app);
                 Visualization.plotBinningSpectra(app);
-                Binning_displaySamplePointOption(app);
+                MSpecController.Binning_displaySamplePointOption(app);
+                %Visualization.displayBinDataTable(app)
             end
         end
         
@@ -131,7 +232,9 @@ classdef MSpecController
             addStyle(app.Binning_SelectDataTable,s);
         end
         
-        function Binning_displayOptionChange
+        function Binning_updateBinningPlot(app)
+            Visualization.plotBinningSpectra(app);
+        end
         
         
     end
