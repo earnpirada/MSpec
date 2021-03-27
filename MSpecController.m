@@ -7,24 +7,70 @@ classdef MSpecController
         
         function initAppFromFiles(app)
             prj = app.CurrentProject;
-            % PreProcessing
-            Visualization.plotRawMSData(app);
-            % set UI parameters
-            app.Preprocessing_WindowSizeEditField.Value = prj.PreprocessedData.WindowSize; %window size
-            app.Preprocessing_StepsizeEditField.Value = prj.PreprocessedData.StepSize; %step size
-            app.Preprocessing_QuantilevalueEditField.Value = prj.PreprocessedData.QuantileValue; %quantile value
-        
-            app.Preprocessing_ReferenceSpectrumEditField.Value = prj.PreprocessedData.ReferenceSpectrum; %alignment refernce spectrum
-            app.Preprocessing_MinimumsegementsizeallowedEditField.Value = prj.PreprocessedData.SegmentSize; %alignment segment size
-            app.Preprocessing_MaximumshiftallowedEditField.Value = prj.PreprocessedData.ShiftAllowance; %alignment shift alowance
             
-            app.Preprocessing_SpectrumtodisplayEditField.Value = num2str(prj.PreprocessedData.DisplayingSpectra); %spectra to display
-            app.Preprocessing_StartingpointEditField.Value = num2str(prj.PreprocessedData.SectionStart); %starting point of section of interest
-            app.Preprocessing_EndingpointEditField.Value = num2str(prj.PreprocessedData.SectionEnd); %ending point of section of interest
+            if ~isempty(prj.PreprocessedData.AlignedSpectra)
+                % PreProcessing Part
+                Visualization.plotRawMSData(app);
+                % set UI parameters
+                app.Preprocessing_WindowSizeEditField.Value = prj.PreprocessedData.WindowSize; %window size
+                app.Preprocessing_StepsizeEditField.Value = prj.PreprocessedData.StepSize; %step size
+                app.Preprocessing_QuantilevalueEditField.Value = prj.PreprocessedData.QuantileValue; %quantile value
+
+                app.Preprocessing_ReferenceSpectrumEditField.Value = prj.PreprocessedData.ReferenceSpectrum; %alignment refernce spectrum
+                app.Preprocessing_MinimumsegementsizeallowedEditField.Value = prj.PreprocessedData.SegmentSize; %alignment segment size
+                app.Preprocessing_MaximumshiftallowedEditField.Value = prj.PreprocessedData.ShiftAllowance; %alignment shift alowance
+
+                app.Preprocessing_SpectrumtodisplayEditField.Value = num2str(prj.PreprocessedData.DisplayingSpectra); %spectra to display
+                app.Preprocessing_StartingpointEditField.Value = num2str(prj.PreprocessedData.SectionStart); %starting point of section of interest
+                app.Preprocessing_EndingpointEditField.Value = num2str(prj.PreprocessedData.SectionEnd); %ending point of section of interest
+
+                % Plotpreprocessed
+                Visualization.plotPreprocessedMSData(app);
+            end
             
-            % Plotpreprocessed
-            Visualization.plotPreprocessedMSData(app);
-            
+            % Normalization
+            if ~isempty(prj.PreprocessedData.NormalizedSpectra)
+                % load parameters to UI
+                currentOption = prj.PreprocessedData.NormalizeMethod;
+                app.Normalization_PeakSpinner.Enable = false;
+                app.Normalization_pvalueSpinner.Enable = false;
+                switch currentOption
+                    case 'Sum'
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_ioncountsButton;
+                    case 'Norm'
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_pnormButton;
+                        app.Normalization_pvalueSpinner.Enable = true;
+                        app.Normalization_pvalueSpinner.Value = prj.PreprocessedData.NormalizationNormValue;
+                    case 'Median'
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_MedianButton;
+                    case 'Noise'
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_NoiseLevelButton;
+                    otherwise
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_ReferencePeakButton;
+                        app.Normalization_PeakSpinner.Enable = true;
+                        app.Normalization_PeakSpinner.Value = prj.PreprocessedData.ReferencePeak;
+                end
+                
+                option = prj.PreprocessedData.NormalizeDisplay;
+                app.Normalization_SamplePointSpinner.Enable = false;
+                app.Normalization_SelectDataTable.Enable = 'off';
+                switch option
+                    case 'All'
+                        app.ViewOptionButtonGroup.SelectedObject = app.Normalization_AllSpectraButton;
+                    case 'Single'
+                        app.ViewOptionButtonGroup.SelectedObject = app.Normalization_SingleSpectrumButton;
+                        app.Normalization_SamplePointSpinner.Enable = true;
+                    otherwise
+                        app.ViewOptionButtonGroup.SelectedObject = Normalization_MultipleSpectraButton;
+                        app.Normalization_SelectDataTable.Enable = 'on';
+                end
+                               
+                Visualization.plotRawMSData_Normalization(app);
+                MSpecController.DisplaySamplePointOption(app);
+                Preprocessing.updateNormalizedSpectra(app);
+                Visualization.plotNormalizedSpectra(app);
+                Visualization.displayNormalizedDataTable(app);
+            end
         end
         
         function getRecentFiles(app)
