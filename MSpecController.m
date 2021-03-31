@@ -7,24 +7,70 @@ classdef MSpecController
         
         function initAppFromFiles(app)
             prj = app.CurrentProject;
-            % PreProcessing
-            Visualization.plotRawMSData(app);
-            % set UI parameters
-            app.Preprocessing_WindowSizeEditField.Value = prj.PreprocessedData.WindowSize; %window size
-            app.Preprocessing_StepsizeEditField.Value = prj.PreprocessedData.StepSize; %step size
-            app.Preprocessing_QuantilevalueEditField.Value = prj.PreprocessedData.QuantileValue; %quantile value
-        
-            app.Preprocessing_ReferenceSpectrumEditField.Value = prj.PreprocessedData.ReferenceSpectrum; %alignment refernce spectrum
-            app.Preprocessing_MinimumsegementsizeallowedEditField.Value = prj.PreprocessedData.SegmentSize; %alignment segment size
-            app.Preprocessing_MaximumshiftallowedEditField.Value = prj.PreprocessedData.ShiftAllowance; %alignment shift alowance
             
-            app.Preprocessing_SpectrumtodisplayEditField.Value = num2str(prj.PreprocessedData.DisplayingSpectra); %spectra to display
-            app.Preprocessing_StartingpointEditField.Value = num2str(prj.PreprocessedData.SectionStart); %starting point of section of interest
-            app.Preprocessing_EndingpointEditField.Value = num2str(prj.PreprocessedData.SectionEnd); %ending point of section of interest
+            if ~isempty(prj.PreprocessedData.AlignedSpectra)
+                % PreProcessing Part
+                Visualization.plotRawMSData(app);
+                % set UI parameters
+                app.Preprocessing_WindowSizeEditField.Value = prj.PreprocessedData.WindowSize; %window size
+                app.Preprocessing_StepsizeEditField.Value = prj.PreprocessedData.StepSize; %step size
+                app.Preprocessing_QuantilevalueEditField.Value = prj.PreprocessedData.QuantileValue; %quantile value
+
+                app.Preprocessing_ReferenceSpectrumEditField.Value = prj.PreprocessedData.ReferenceSpectrum; %alignment refernce spectrum
+                app.Preprocessing_MinimumsegementsizeallowedEditField.Value = prj.PreprocessedData.SegmentSize; %alignment segment size
+                app.Preprocessing_MaximumshiftallowedEditField.Value = prj.PreprocessedData.ShiftAllowance; %alignment shift alowance
+
+                app.Preprocessing_SpectrumtodisplayEditField.Value = num2str(prj.PreprocessedData.DisplayingSpectra); %spectra to display
+                app.Preprocessing_StartingpointEditField.Value = num2str(prj.PreprocessedData.SectionStart); %starting point of section of interest
+                app.Preprocessing_EndingpointEditField.Value = num2str(prj.PreprocessedData.SectionEnd); %ending point of section of interest
+
+                % Plotpreprocessed
+                Visualization.plotPreprocessedMSData(app);
+            end
             
-            % Plotpreprocessed
-            Visualization.plotPreprocessedMSData(app);
-            
+            % Normalization
+            if ~isempty(prj.PreprocessedData.NormalizedSpectra)
+                % load parameters to UI
+                currentOption = prj.PreprocessedData.NormalizeMethod;
+                app.Normalization_PeakSpinner.Enable = false;
+                app.Normalization_pvalueSpinner.Enable = false;
+                switch currentOption
+                    case 'Sum'
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_ioncountsButton;
+                    case 'Norm'
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_pnormButton;
+                        app.Normalization_pvalueSpinner.Enable = true;
+                        app.Normalization_pvalueSpinner.Value = prj.PreprocessedData.NormalizationNormValue;
+                    case 'Median'
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_MedianButton;
+                    case 'Noise'
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_NoiseLevelButton;
+                    otherwise
+                        app.NormalizationMethodsButtonGroup.SelectedObject = app.Normalization_ReferencePeakButton;
+                        app.Normalization_PeakSpinner.Enable = true;
+                        app.Normalization_PeakSpinner.Value = prj.PreprocessedData.ReferencePeak;
+                end
+                
+                option = prj.PreprocessedData.NormalizeDisplay;
+                app.Normalization_SamplePointSpinner.Enable = false;
+                app.Normalization_SelectDataTable.Enable = 'off';
+                switch option
+                    case 'All'
+                        app.ViewOptionButtonGroup.SelectedObject = app.Normalization_AllSpectraButton;
+                    case 'Single'
+                        app.ViewOptionButtonGroup.SelectedObject = app.Normalization_SingleSpectrumButton;
+                        app.Normalization_SamplePointSpinner.Enable = true;
+                    otherwise
+                        app.ViewOptionButtonGroup.SelectedObject = Normalization_MultipleSpectraButton;
+                        app.Normalization_SelectDataTable.Enable = 'on';
+                end
+                               
+                Visualization.plotRawMSData_Normalization(app);
+                MSpecController.DisplaySamplePointOption(app);
+                Preprocessing.updateNormalizedSpectra(app);
+                Visualization.plotNormalizedSpectra(app);
+                Visualization.displayNormalizedDataTable(app);
+            end
         end
         
         function getRecentFiles(app)
@@ -55,6 +101,8 @@ classdef MSpecController
         function initProjectInfo(app)
             app.ProjectInfo_ProjectNameEditField.Value = app.CurrentProject.ProjectName;
             app.ProjectInfo_ImportedFileEditField.Value = app.CurrentProject.RawData.FileName;
+            app.ProjectInfo_CreatedDate.Value = datestr(app.CurrentProject.CreatedDate);
+            app.ProjectInfo_DescriptionTextArea.Value = app.CurrentProject.Description;
         end
         
         function saveProject(app)
@@ -68,28 +116,26 @@ classdef MSpecController
             % if the file already exists then just save
             if exist(fullfile(Location, FileName), 'file')
                 % File exists.  Do stuff....
-                fig = uifigure;
                 msg = 'Saving these changes will overwrite previous changes.';
                 title = 'Confirm Save';
-                selection = uiconfirm(fig,msg,title,...
+                selection = uiconfirm(app.MSPECAppUIFigure,msg,title,...
                     'Options',{'Overwrite','Save as new','Cancel'},...
-                    'DefaultOption',2,'CancelOption',3);
+                    'DefaultOption',1,'CancelOption',3);
                 if selection == "Overwrite"
                     save(fullfile(Location, projectName), 'ProjectData');
                 elseif selection == "Save as new"
                     % create new project to be done later
                 else
                     % do nothing
+                    uiconfirm(app.MSPECAppUIFigure,'Your project is not saved.','Cancel','Options',{'OK'},'Icon','error');
                 end
-                close(fig)
             else
                 % File does not exist.
                 save(fullfile(Location, projectName), 'ProjectData');
-                fig = uifigure;
                 msg = sprintf('Your project has been saved to %s',Location);
-                selection = uiconfirm(fig,msg,'Saved Sucessfully','Options',{'OK'},'Icon','success');
+                selection = uiconfirm(app.MSPECAppUIFigure,msg,'Saved Sucessfully','Options',{'OK'},'Icon','success');
                 if selection == "OK"
-                    close(fig)
+                    % do nothing
                 end
             end 
         end
@@ -115,8 +161,7 @@ classdef MSpecController
         
         function plotButtonPushedHandler(app)
             
-            fig = uifigure;
-            d = uiprogressdlg(fig,'Title','Processing your data','Message','Please wait . . .','Indeterminate','on');
+            d = uiprogressdlg(app.MSPECAppUIFigure,'Title','Processing your data','Message','Please wait . . .','Indeterminate','on');
             drawnow
     
             % Do the SVD computation
@@ -149,14 +194,12 @@ classdef MSpecController
             
             % close the dialog box
             close(d)
-            close(fig)
             Visualization.plotPreprocessedMSData(app);
         end
         
         function initNormalization(app)
             Visualization.plotRawMSData_Normalization(app);
             app.TabGroup.SelectedTab = app.NormalizationTab;
-            MSpecController.setDefaultReferencePeak(app);
             MSpecController.DisplaySamplePointOption(app);
             Preprocessing.updateNormalizedSpectra(app);
         end
@@ -167,12 +210,6 @@ classdef MSpecController
             Visualization.displayNormalizedDataTable(app);
         end
         
-        function setDefaultReferencePeak(app)
-            SD = std(app.CurrentProject.PreprocessedData.AlignedSpectra,0,2); % dim = 2 means for each row
-            [Max,IndexMax] = max(SD);
-            app.CurrentProject.PreprocessedData.ReferencePeak = IndexMax;
-            app.Normalization_PeakSpinner.Value = double(IndexMax);
-        end
         
         function DisplaySamplePointOption(app)
             SampleIndex = transpose(1:app.CurrentProject.RawData.NumberOfSpectra);

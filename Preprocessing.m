@@ -172,10 +172,10 @@ classdef Preprocessing
             NormalizedSpectra = transpose(app.CurrentProject.PreprocessedData.AlignedSpectra);
             numberOfSpectra = app.CurrentProject.RawData.NumberOfSpectra;
             [x,y] = size(app.CurrentProject.RawData.RawSpectraIntensities);
-            sprintf('Raw x: %d, y: %d',x,y)
+            sprintf('Raw x: %d, y: %d',x,y);
             [x,y] = size(app.CurrentProject.PreprocessedData.NormalizedSpectra);
-            sprintf('Normalized x: %d, y: %d',x,y)
-            sprintf(' %d',NormalizedSpectra)
+            sprintf('Normalized x: %d, y: %d',x,y);
+            sprintf(' %d',NormalizedSpectra);
 
             switch app.CurrentProject.PreprocessedData.NormalizeMethod % Get Tag of selected object.
                 case 'Sum'
@@ -209,8 +209,10 @@ classdef Preprocessing
                         NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
                     end
                  otherwise %peak
+                    idx = app.CurrentProject.PreprocessedData.ReferencePeakIndex;
+                    sprintf('Ref Peak Index = %d', idx)
                     for j = 1:numberOfSpectra
-                        ref = NormalizedSpectra(app.CurrentProject.PreprocessedData.ReferencePeak,j);
+                        ref = NormalizedSpectra(idx,j);
                         NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./ref;
                     end
             end
@@ -288,8 +290,8 @@ classdef Preprocessing
             PA = nan(numel(currentCMZ),num);
             DetectedSpectra = app.CurrentProject.PreprocessedData.CutThresholdPeak;
             for i = 1:num
-                [j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i},'BAND',15,'WEIGHTS',[1 .1]);
-                %[j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i});
+                %[j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i},'BAND',30,'WEIGHTS',[1 1]);
+                [j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i});
                 PA(j,i) = DetectedSpectra{i}(k,2);
             end
 

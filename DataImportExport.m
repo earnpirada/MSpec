@@ -5,8 +5,7 @@ classdef DataImportExport
     
     methods (Static)
         function importData(app)
-            fig = uifigure;
-            d = uiprogressdlg(fig,'Title','Please Wait',...
+            d = uiprogressdlg(app.MSPECAppUIFigure,'Title','Please Wait',...
                 'Message','Opening the import window');
             pause(.5)
             handles.filename = uigetfile('*.csv*');
@@ -30,7 +29,6 @@ classdef DataImportExport
                 app.ImportStatusLabel.FontColor = [0.6902 0.2549 0.2549];
                 app.ImportStatusLabel.Text = 'The file must be in .csv format';
                 close(d)
-                close(fig)
             end
             %if isequal(file,0)
                 % display error message
@@ -88,7 +86,6 @@ classdef DataImportExport
 
             % Close dialog box
             close(d)
-            close(fig)
         end
         
         function initProjectInfo(app, MSData)
@@ -98,7 +95,7 @@ classdef DataImportExport
             app.HeightField.Value = MSData.NumberOfSpectra;
             app.WidthField.Editable = 'off';
             app.HeightField.Editable = 'off';
-
+            app.Import_CreateProjectButton.Enable = true;
         end
         
         function width = calculateWidth (numberOfSpectra, height)
@@ -106,7 +103,7 @@ classdef DataImportExport
         end
         
         function createProject (app)
-            app.CurrentProject.setProjectInfo(app.ProjectNameEditField.Value);
+            app.CurrentProject.setProjectInfo(app.ProjectNameEditField.Value,app.DescriptionEditField.Value);
             app.TabGroup.SelectedTab = app.PreprocessingTab;
             %Init Raw Data Plot
             Visualization.plotRawMSData(app);
