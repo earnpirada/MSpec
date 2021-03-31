@@ -5,6 +5,7 @@ classdef MSProject < handle
     properties
         ProjectName
         CreatedDate
+        Description
         RawData MSData
         PreprocessedData PreprocessedMSData
     end
@@ -17,8 +18,9 @@ classdef MSProject < handle
             %obj.CreatedDate = datetime('now','Format','d-MMM-y HH:mm:ss');
         end
         
-        function setProjectInfo (obj, projName)
+        function setProjectInfo (obj, projName, description)
             obj.ProjectName = projName;
+            obj.Description = description;
             obj.CreatedDate = datetime('now','Format','d-MMM-y HH:mm:ss');
             obj.PreprocessedData = PreprocessedMSData();
         end

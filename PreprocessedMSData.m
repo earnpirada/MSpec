@@ -31,6 +31,7 @@ classdef PreprocessedMSData < handle
         NormalizedSpectra % processed Data kept here
         %user input
         ReferencePeak =1;
+        ReferencePeakIndex
         NormalizationNormValue = 1;
         
         

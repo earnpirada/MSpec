@@ -101,6 +101,8 @@ classdef MSpecController
         function initProjectInfo(app)
             app.ProjectInfo_ProjectNameEditField.Value = app.CurrentProject.ProjectName;
             app.ProjectInfo_ImportedFileEditField.Value = app.CurrentProject.RawData.FileName;
+            app.ProjectInfo_CreatedDate.Value = datestr(app.CurrentProject.CreatedDate);
+            app.ProjectInfo_DescriptionTextArea.Value = app.CurrentProject.Description;
         end
         
         function saveProject(app)
@@ -114,28 +116,26 @@ classdef MSpecController
             % if the file already exists then just save
             if exist(fullfile(Location, FileName), 'file')
                 % File exists.  Do stuff....
-                fig = uifigure;
                 msg = 'Saving these changes will overwrite previous changes.';
                 title = 'Confirm Save';
-                selection = uiconfirm(fig,msg,title,...
+                selection = uiconfirm(app.MSPECAppUIFigure,msg,title,...
                     'Options',{'Overwrite','Save as new','Cancel'},...
-                    'DefaultOption',2,'CancelOption',3);
+                    'DefaultOption',1,'CancelOption',3);
                 if selection == "Overwrite"
                     save(fullfile(Location, projectName), 'ProjectData');
                 elseif selection == "Save as new"
                     % create new project to be done later
                 else
                     % do nothing
+                    uiconfirm(app.MSPECAppUIFigure,'Your project is not saved.','Cancel','Options',{'OK'},'Icon','error');
                 end
-                close(fig)
             else
                 % File does not exist.
                 save(fullfile(Location, projectName), 'ProjectData');
-                fig = uifigure;
                 msg = sprintf('Your project has been saved to %s',Location);
-                selection = uiconfirm(fig,msg,'Saved Sucessfully','Options',{'OK'},'Icon','success');
+                selection = uiconfirm(app.MSPECAppUIFigure,msg,'Saved Sucessfully','Options',{'OK'},'Icon','success');
                 if selection == "OK"
-                    close(fig)
+                    % do nothing
                 end
             end 
         end
@@ -161,8 +161,7 @@ classdef MSpecController
         
         function plotButtonPushedHandler(app)
             
-            fig = uifigure;
-            d = uiprogressdlg(fig,'Title','Processing your data','Message','Please wait . . .','Indeterminate','on');
+            d = uiprogressdlg(app.MSPECAppUIFigure,'Title','Processing your data','Message','Please wait . . .','Indeterminate','on');
             drawnow
     
             % Do the SVD computation
@@ -195,14 +194,12 @@ classdef MSpecController
             
             % close the dialog box
             close(d)
-            close(fig)
             Visualization.plotPreprocessedMSData(app);
         end
         
         function initNormalization(app)
             Visualization.plotRawMSData_Normalization(app);
             app.TabGroup.SelectedTab = app.NormalizationTab;
-            MSpecController.setDefaultReferencePeak(app);
             MSpecController.DisplaySamplePointOption(app);
             Preprocessing.updateNormalizedSpectra(app);
         end
@@ -213,12 +210,6 @@ classdef MSpecController
             Visualization.displayNormalizedDataTable(app);
         end
         
-        function setDefaultReferencePeak(app)
-            SD = std(app.CurrentProject.PreprocessedData.AlignedSpectra,0,2); % dim = 2 means for each row
-            [Max,IndexMax] = max(SD);
-            app.CurrentProject.PreprocessedData.ReferencePeak = IndexMax;
-            app.Normalization_PeakSpinner.Value = double(IndexMax);
-        end
         
         function DisplaySamplePointOption(app)
             SampleIndex = transpose(1:app.CurrentProject.RawData.NumberOfSpectra);
