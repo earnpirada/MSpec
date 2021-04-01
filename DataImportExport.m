@@ -58,7 +58,7 @@ classdef DataImportExport
             d.Message = 'Processing the data';
             pause(1)
             
-            RawImportData(1,:)=[];
+            %RawImportData(1,:)=[];
             RawMzValues=RawImportData(:,1);
             %[RowNumber,ColumnNumber]= size(RawImportData);
             [x,y] = size(RawImportData);
@@ -66,13 +66,14 @@ classdef DataImportExport
             for i = 2:y
                 RawSpectraIntensities(:,i)  = RawImportData(:,i);
             end
-            fprintf('%d loops',y)
             RawSpectraIntensities(:,1)=[];
             % MinIntensity = min(RawMzValues);
             % MaxIntensity = max(RawMzValues);
             [m,n] = size(RawSpectraIntensities);
             NumberOfSpectra = n;
-            fprintf('col: %d row: %d s',m,n)
+            fprintf('Raw Size : %d, %d ',m,n)
+
+            fprintf('%d ',RawMzValues)
             
             % Finish calculations
             % ...
@@ -118,6 +119,25 @@ classdef DataImportExport
             csvwrite(filename,OutputArray);
         end
         
+        function exportNormalizedData(app)
+            [file,path] = uiputfile('*.csv');
+            filename = fullfile(path,file);
+            %Arr = transpose(0:app.RowNumber-1);
+            OutputArray = [app.CurrentProject.RawData.RawMzValues app.CurrentProject.PreprocessedData.NormalizedSpectra];
+            csvwrite(filename,OutputArray);
+        end
+        
+        function exportDetectedPeak(app)
+            
+            [file,path] = uiputfile('*.xls');
+            filename = fullfile(path,file);
+            for i = 1:app.CurrentProject.RawData.NumberOfSpectra
+                writematrix(app.CurrentProject.PreprocessedData.CutThresholdPeak{i},filename,'Sheet',i);
+            end
+            %writematrix(OutputArray, filename); 
+
+        end
+        
         function exportBinnedData(app)
             [file,path] = uiputfile('*.csv');
             filename = fullfile(path,file);
@@ -138,6 +158,56 @@ classdef DataImportExport
             edgeList=readmatrix(fileName);
             app.Binning_FileLabel.Text = fileName;
             app.CurrentProject.PreprocessedData.ImportedEdgeList = edgeList;
+        end
+        
+        function exportAllData(app)
+            exportFileName = strcat(app.CurrentProject.ProjectName,'.zip');
+            [file,path] = uiputfile(exportFileName);
+            exportfilename = fullfile(path,file);
+            mkdir tempFolder
+            tempPath = './tempFolder/';
+
+            exportFileList = {};
+            % check if the checkbox is checked
+            if app.Export_PreprocessingCheckBox.Value
+                OutputArray = [app.CurrentProject.RawData.RawMzValues app.CurrentProject.PreprocessedData.BaselinedSpectra];
+                fileName = strcat(tempPath,'Preprocessed.csv');
+                writematrix(OutputArray, fileName); 
+                exportFileList{end+1} = 'Preprocessed.csv';
+            end
+            
+            if app.Export_NormalizationCheckBox.Value
+                OutputArray = [app.CurrentProject.RawData.RawMzValues app.CurrentProject.PreprocessedData.NormalizedSpectra];
+                fileName = strcat(tempPath,'Normalized.csv');
+                writematrix(OutputArray, fileName); 
+                exportFileList{end+1} = 'Normalized.csv';
+            end
+            
+            if app.Export_PeakDetectionCheckBox.Value
+                fileName = strcat(tempPath,'DetectedPeak.xls');
+                for i = 1:app.CurrentProject.RawData.NumberOfSpectra
+                    writematrix(app.CurrentProject.PreprocessedData.CutThresholdPeak{i},fileName,'Sheet',i);
+                end
+                exportFileList{end+1} = 'DetectedPeak.xls';
+            end
+            
+            if app.Export_PeakBinningCheckBox.Value
+                OutputArray = [app.CurrentProject.PreprocessedData.BinIndexList app.CurrentProject.PreprocessedData.BinnedSpectra];
+                fileName = strcat(tempPath,'BinnedData.csv');
+                writematrix(OutputArray, fileName); 
+                exportFileList{end+1} = 'BinnedData.csv';
+                
+                OutputArray = [app.CurrentProject.PreprocessedData.EdgeList];
+                fileName = strcat(tempPath,'BinEdges.csv');
+                writematrix(OutputArray, fileName); 
+                exportFileList{end+1} = 'BinEdges.csv';
+            end
+            
+            zip(exportfilename,exportFileList,tempPath);
+            
+            %remove createdFolder
+            rmdir tempFolder s
+                
         end
       
     end
