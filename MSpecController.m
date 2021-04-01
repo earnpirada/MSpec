@@ -76,7 +76,7 @@ classdef MSpecController
         function getRecentFiles(app)
             % where MS projects are stored
             directory = '.\projects';
-            MyFolderInfo = dir(fullfile(directory,'*.mat'))
+            MyFolderInfo = dir(fullfile(directory,'*.mat'));
             [numFile,~] = size(MyFolderInfo);
             fileNameList = {};
             for i = 1:numFile
@@ -243,7 +243,13 @@ classdef MSpecController
         
         function startPeakBinning(app)
             app.CurrentProject.PreprocessedData.Cutoff = app.CUTOFFSpinner.Value;
-            Preprocessing.peakBinning_Hierachical(app);
+            try
+                %put here the code that might fail
+                Preprocessing.peakBinning_Hierachical(app);
+            catch
+                %do something if error occurs
+                errordlg('Please re-adjust the parameters for peak detection.','Something went wrong');
+            end
         end
         
         function startAlignPeakBinning(app)

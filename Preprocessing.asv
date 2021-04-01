@@ -169,14 +169,9 @@ classdef Preprocessing
         function updateNormalizedSpectra(app)
             % Data Normalization
                 
-            NormalizedSpectra = transpose(app.CurrentProject.PreprocessedData.AlignedSpectra);
+            NormalizedSpectra = app.CurrentProject.PreprocessedData.BaselinedSpectra;
             numberOfSpectra = app.CurrentProject.RawData.NumberOfSpectra;
-            [x,y] = size(app.CurrentProject.RawData.RawSpectraIntensities);
-            sprintf('Raw x: %d, y: %d',x,y)
-            [x,y] = size(app.CurrentProject.PreprocessedData.NormalizedSpectra);
-            sprintf('Normalized x: %d, y: %d',x,y)
-            sprintf(' %d',NormalizedSpectra)
-
+            
             switch app.CurrentProject.PreprocessedData.NormalizeMethod % Get Tag of selected object.
                 case 'Sum'
                     for j = 1:numberOfSpectra
@@ -209,8 +204,11 @@ classdef Preprocessing
                         NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
                     end
                  otherwise %peak
+                    idx = app.CurrentProject.PreprocessedData.ReferencePeakIndex;
+                    sprintf('Ref Peak Index = %d', idx)
                     for j = 1:numberOfSpectra
-                        ref = NormalizedSpectra(app.CurrentProject.PreprocessedData.ReferencePeak,j);
+                        ref = NormalizedSpectra(idx,j);
+                        sprintf('Spectrum NO. = %d, The ref value used = %d', j,ref)
                         NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./ref;
                     end
             end
@@ -233,8 +231,8 @@ classdef Preprocessing
         function peakBinning_Hierachical(app)
             %Put all the peaks into a single array and construct a vector with the spectrogram index for each peak.
 
-            allPeaks = cell2mat(app.CurrentProject.PreprocessedData.CutThresholdPeak);
-            numPeaks = cellfun(@(x) length(x),app.CurrentProject.PreprocessedData.CutThresholdPeak);
+            allPeaks = cell2mat(app.CurrentProject.PreprocessedData.CutThresholdPeak)
+            numPeaks = cellfun(@(x) length(x),app.CurrentProject.PreprocessedData.CutThresholdPeak)
             Sidx = accumarray(cumsum(numPeaks),1);
             Sidx = cumsum(Sidx)-Sidx;
             
@@ -288,8 +286,8 @@ classdef Preprocessing
             PA = nan(numel(currentCMZ),num);
             DetectedSpectra = app.CurrentProject.PreprocessedData.CutThresholdPeak;
             for i = 1:num
-                [j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i},'BAND',15,'WEIGHTS',[1 .1]);
-                %[j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i});
+                %[j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i},'BAND',30,'WEIGHTS',[1 1]);
+                [j,k] = samplealign([currentCMZ app.CurrentProject.PreprocessedData.PR],DetectedSpectra{i});
                 PA(j,i) = DetectedSpectra{i}(k,2);
             end
 
@@ -328,6 +326,8 @@ classdef Preprocessing
             app.CurrentProject.PreprocessedData.EdgeList = edgeList;
             
             if isempty(edgeList)
+                app.CurrentProject.PreprocessedData.BinIndexList = [];
+                app.CurrentProject.PreprocessedData.BinnedSpectra = [];
             else
                 binnedData = generateBinsFromEdges(edgeList, app.CurrentProject.RawData.RawMzValues, app.CurrentProject.PreprocessedData.NormalizedSpectra);
                 app.CurrentProject.PreprocessedData.BinIndexList = binnedData(:,1);
