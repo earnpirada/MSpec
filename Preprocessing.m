@@ -169,14 +169,9 @@ classdef Preprocessing
         function updateNormalizedSpectra(app)
             % Data Normalization
                 
-            NormalizedSpectra = transpose(app.CurrentProject.PreprocessedData.AlignedSpectra);
+            NormalizedSpectra = app.CurrentProject.PreprocessedData.BaselinedSpectra;
             numberOfSpectra = app.CurrentProject.RawData.NumberOfSpectra;
-            [x,y] = size(app.CurrentProject.RawData.RawSpectraIntensities);
-            sprintf('Raw x: %d, y: %d',x,y);
-            [x,y] = size(app.CurrentProject.PreprocessedData.NormalizedSpectra);
-            sprintf('Normalized x: %d, y: %d',x,y);
-            sprintf(' %d',NormalizedSpectra);
-
+            
             switch app.CurrentProject.PreprocessedData.NormalizeMethod % Get Tag of selected object.
                 case 'Sum'
                     for j = 1:numberOfSpectra
@@ -213,6 +208,7 @@ classdef Preprocessing
                     sprintf('Ref Peak Index = %d', idx)
                     for j = 1:numberOfSpectra
                         ref = NormalizedSpectra(idx,j);
+                        sprintf('Spectrum NO. = %d, The ref value used = %d', j,ref)
                         NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./ref;
                     end
             end
@@ -227,7 +223,7 @@ classdef Preprocessing
             else
                 app.CurrentProject.PreprocessedData.DetectedPeak = mspeaks(app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra,'DENOISING',true,'BASE',app.CurrentProject.PreprocessedData.Base,'MULTIPLIER',app.CurrentProject.PreprocessedData.Multiplier,'HEIGHTFILTER',app.CurrentProject.PreprocessedData.HeightFilter);
             end
-            app.CurrentProject.PreprocessedData.CutThresholdPeak = cellfun(@(p) p(p(:,1)>app.CurrentProject.PreprocessedData.PeakThreshold,:),app.CurrentProject.PreprocessedData.DetectedPeak,'Uniform',false); 
+            app.CurrentProject.PreprocessedData.CutThresholdPeak = cellfun(@(p) p(p(:,1)>app.CurrentProject.PreprocessedData.PeakThreshold,:),app.CurrentProject.PreprocessedData.DetectedPeak,'Uniform',false);
         end
         
         %==========Binning==========================
@@ -263,7 +259,6 @@ classdef Preprocessing
                 hold(app.Binning_PeakBinningPlot,"on");
                 box(app.Binning_PeakBinningPlot,"on");
                 for i=1:length(CMZ)
-                    %plot(app.Binning_PeakBinningPlot,[CMZ CMZ],[-100 inf],'-k');
                     xline(app.Binning_PeakBinningPlot,CMZ(i),'k');
                 end
                 plot(app.Binning_PeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
@@ -272,7 +267,6 @@ classdef Preprocessing
                 hold(app.Binning_PeakBinningPlot,"on");
                 box(app.Binning_PeakBinningPlot,"on");
                 for i=1:length(CMZ)
-                    %plot(app.Binning_PeakBinningPlot,[CMZ CMZ],[-100 inf],'-k');
                     xline(app.Binning_PeakBinningPlot,CMZ(i),'k');
                 end
                 plot(app.Binning_PeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra(:,index))
