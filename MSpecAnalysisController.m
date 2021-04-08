@@ -255,14 +255,12 @@ classdef MSpecAnalysisController
         
         function loadPreprocessParameters(app)
             selectedModel = MSpecAnalysisController.retrieveModel(app);
-            
-            app.CurrentModel = selectedModel.model.Model;
-            app.CurrentPreprocessParameters = selectedModel.model.Preprocessing;
-
+            app.CurrentProject.ClassificationModel = selectedModel.model.Model.model;
+            app.CurrentProject.PreprocessParameters = selectedModel.model.Preprocessing;
         end
         
         function parametersToUI(app)
-            params = app.CurrentPreprocessParameters;
+            params = app.CurrentProject.PreprocessParameters;
             
             % set UI parameters
             app.Preprocessing_WindowSizeEditField.Value = params.WindowSize; %window size
@@ -283,28 +281,34 @@ classdef MSpecAnalysisController
             d = uiprogressdlg(app.MSpecAnalysisUIFigure,'Title','Initializing the Preprocessing',...
             'Indeterminate','on');
             drawnow
+            
             % LOAD and STORE PARAM from the model
             MSpecAnalysisController.loadPreprocessParameters(app);
             % set UI params
             MSpecAnalysisController.parametersToUI(app);
-            
+            app.TabGroup.SelectedTab = app.PreprocessingTab;
+            % Do preprocessing
             MSpecAnalysisController.preprocessing(app);
+            % Plot
+            AnalysisVisualization.plotPreprocessedData(app);
+            
             close(d)
         end
         
         
         function preprocessing(app)
             rawData = app.CurrentProject.RawData;
-            params = app.CurrentPreprocessParameters;
+            params = app.CurrentProject.PreprocessParameters;
 
             preprocessedData = PreprocessedMSAData();
             
             % start
             MSpecAnalysisController.alignment(rawData,params,preprocessedData);
-            MSpecAnalysisController.baselineCorrection(rawData, preprocessData, params);
+            MSpecAnalysisController.baselineCorrection(rawData, preprocessedData, params);
+            MSpecAnalysisController.normalizeSpectra(rawData, preprocessedData, params);
+            MSpecAnalysisController.startPeakBinningFromEdges(rawData, preprocessedData, params);
             
-            sprintf("it works !")
-            
+            app.CurrentProject.PreprocessedData = preprocessedData;
         end
         
         function alignment(rawData,params,preprocessedData)
@@ -313,7 +317,6 @@ classdef MSpecAnalysisController
             reference = spectra(params.ReferenceSpectrum,:);
             segSize = params.SegmentSize;
             shift = params.ShiftAllowance;
-            params
             
             if length(reference)~=length(spectra)
                 error('Reference and spectra of unequal lengths');
@@ -342,10 +345,8 @@ classdef MSpecAnalysisController
                     end
                     MSpecAnalysisController.FFTcorr(preprocessedData,samseg,refseg,shift);
                     lag = preprocessedData.SegmentLag;
-                    samseg
-                    lag
                     MSpecAnalysisController.move(preprocessedData,samseg,lag);
-                    aligned = [aligned params.ShiftedSegment];
+                    aligned = [aligned preprocessedData.ShiftedSegment];
                     startpos=endpos+1;
                 end
                 preprocessedData.PreprocessedSpectra(i,:) = aligned;
@@ -433,12 +434,79 @@ classdef MSpecAnalysisController
             preprocessedData.MinPosition = Is(1,1);
         end
         
-        function baselineCorrection(rawData, preprocessData, params)
-            baselined = msbackadj(rawData.RawMzValues,transpose(preprocessData.PreprocessedSpectra),'STEPSIZE', params.StepSize,...
+        function baselineCorrection(rawData, preprocessedData, params)
+            baselined = msbackadj(rawData.RawMzValues,transpose(preprocessedData.PreprocessedSpectra),'STEPSIZE', params.StepSize,...
                 'WINDOWSIZE', params.WindowSize,'QuantileValue',params.QuantileValue,'SmoothMethod','lowess');        
             baselined = max(baselined,0);
-            preprocessData.PreprocessedSpectra = mslowess(rawData.RawMzValues,baselined);
+            preprocessedData.PreprocessedSpectra = mslowess(rawData.RawMzValues,baselined);
         end
+        
+        function normalizeSpectra(rawData, preprocessedData, params)
+            % Data Normalization
+                
+            NormalizedSpectra = preprocessedData.PreprocessedSpectra;
+            numberOfSpectra = rawData.NumberOfSpectra;
+            
+            switch params.NormalizeMethod % Get Tag of selected object.
+                case 'Sum'
+                    for j = 1:numberOfSpectra
+                        colj = NormalizedSpectra(:,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./sum(colj);
+                    end
+                 case 'Area'
+                    for j = 1:numberOfSpectra
+                        colj = NormalizedSpectra(:,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./trapz(app.CurrentProject.RawData.RawMzValues, colj);
+                    end
+                 case 'Norm'
+                    for j = 1:numberOfSpectra
+                        factor = norm(NormalizedSpectra(:,j),app.CurrentProject.PreprocessedData.NormalizationNormValue);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                    end
+                 case 'Median'
+                     for j = 1:numberOfSpectra
+                        factor = median(NormalizedSpectra(:,j));
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                     end
+                 case 'Noise'
+                    for j = 1:numberOfSpectra
+                        % Noise Level
+                        DifVector = diff(NormalizedSpectra(:,j));
+                        % universal thresholding
+                        MedOfDif = median(DifVector);
+                        e = abs(DifVector-MedOfDif);
+                        factor = median(e);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                    end
+                case 'Max'
+                    for j = 1:numberOfSpectra
+                        factor = max(NormalizedSpectra(:,j));
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                     end
+                 otherwise %peak
+                    idx = params.ReferencePeakIndex;
+                    for j = 1:numberOfSpectra
+                        ref = NormalizedSpectra(idx,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./ref;
+                    end
+            end
+            preprocessedData.PreprocessedSpectra = NormalizedSpectra;
+        end
+        
+        function startPeakBinningFromEdges(rawData, preprocessedData, params)
+            
+            edgeList = params.ImportedEdgeList;
+            binnedData = generateBinsFromEdges(edgeList, rawData.RawMzValues, preprocessedData.PreprocessedSpectra);
+            
+            preprocessedData.BinIndexList = binnedData(:,1);
+            binnedData(:,1) = [];
+            preprocessedData.BinnedSpectra = binnedData;
+            [m,n] = size(preprocessedData.BinIndexList)
+            [o,p] = size(preprocessedData.BinnedSpectra)
+
+            
+        end
+                
     end
 end
 

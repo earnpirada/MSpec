@@ -25,6 +25,29 @@ classdef AnalysisVisualization
             addStyle(app.ImportedDataTable,s);
 
         end
+        
+        function plotPreprocessedData(app)
+            cla(app.PreprocessedDataPlot)
+            app.PreprocessedDataPlot.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
+            data = app.CurrentProject.PreprocessedData;
+            
+            switch app.BinningDisplay
+                case 'All'
+                    bar(app.PreprocessedDataPlot,data.BinIndexList, data.BinnedSpectra);
+                case 'Single'
+                    bar(app.PreprocessedDataPlot,data.BinIndexList, data.BinnedSpectra(:, app.Binning_SamplePointSpinner.Value));
+                case 'Multiple'
+                    retreivedata = get(app.Binning_SelectDataTable,'data');
+                    hold(app.PreprocessedDataPlot,"on");
+                    for k = 1:length(retreivedata(:,2))
+                        if retreivedata(k,2) == 1
+                            bar(app.PreprocessedDataPlot,data.BinIndexList, adata.BinnedSpectra(:, k));
+                        end
+                    end
+                    hold(app.PreprocessedDataPlot,"off");
+            end     
+            
+        end
     end
 end
 
