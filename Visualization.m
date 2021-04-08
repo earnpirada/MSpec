@@ -85,7 +85,7 @@ classdef Visualization
                 hold(app.Detection_PeakDetectionPlot,"off");
 
             else
-                app.UIAxes.Title.String = 'Selected spectra';
+                %app.UIAxes.Title.String = 'Selected spectra';
                 index = str2num(app.Detection_SpectrumtodisplayEditField.Value);
                 plot(app.Detection_PeakDetectionPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra(:,index),'b',app.CurrentProject.PreprocessedData.CutThresholdPeak{index}(:,1),app.CurrentProject.PreprocessedData.CutThresholdPeak{index}(:,2),'rx')
             end

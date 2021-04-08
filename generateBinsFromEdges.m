@@ -6,7 +6,6 @@ function binArray= generateBinsFromEdges(edgeList,MZvalues,intensities)
     [MZNumber,SpecNumber] = size(intensities);
     
     [~,edgeNumber] = (size(edgeList));
-    sprintf("number of edges: %d", edgeNumber)
     % number 1 to n bins
     binIndexList = 1:edgeNumber;
     allBinIntensityList = [];
@@ -46,6 +45,5 @@ function binArray= generateBinsFromEdges(edgeList,MZvalues,intensities)
         binIndexList(edgeIndex) = mean(massList);
         allBinIntensityList = [allBinIntensityList binIntensityList];
     end    
-    binIndexList
     binArray = [transpose(binIndexList) allBinIntensityList];
 end
