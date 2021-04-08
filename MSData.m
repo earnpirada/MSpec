@@ -9,6 +9,7 @@ classdef MSData
         NumberOfSpectra
         RowNumber
         ColumnNumber
+        DataType
     end
     
     methods
@@ -23,12 +24,6 @@ classdef MSData
             obj.NumberOfSpectra = numOfSpectra;
             obj.RowNumber = rowNumber;
             obj.ColumnNumber = colNumber;
-        end
-        
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
         end
     end
 end

@@ -203,12 +203,15 @@ classdef Preprocessing
                         factor = median(e);
                         NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
                     end
+                case 'Max'
+                    for j = 1:numberOfSpectra
+                        factor = max(NormalizedSpectra(:,j));
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                     end
                  otherwise %peak
                     idx = app.CurrentProject.PreprocessedData.ReferencePeakIndex;
-                    sprintf('Ref Peak Index = %d', idx)
                     for j = 1:numberOfSpectra
                         ref = NormalizedSpectra(idx,j);
-                        sprintf('Spectrum NO. = %d, The ref value used = %d', j,ref)
                         NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./ref;
                     end
             end

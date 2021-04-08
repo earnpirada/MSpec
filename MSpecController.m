@@ -106,12 +106,12 @@ classdef MSpecController
         end
         
         function saveProject(app)
-            projectName = app.CurrentProject.ProjectName;            
+            projectName = 'Earn_Project';            
             Location = pwd; 
             ProjectData = app.CurrentProject;
             dir = '\projects';
             Location = strcat(Location,dir);
-            FileName = strcat(projectName,'.mat');
+            FileName = strcat('Earn','.mat');
 
             % if the file already exists then just save
             if exist(fullfile(Location, FileName), 'file')
@@ -222,6 +222,9 @@ classdef MSpecController
         end
         
         function startPeakDetection(app)
+            d = uiprogressdlg(app.MSPECAppUIFigure,'Title','Detecting Peaks',...
+            'Indeterminate','on');
+            
             CurrentPreprocessedData = app.CurrentProject.PreprocessedData;
             value = app.Detection_MethodDropDown.Value;
             switch value % Get Tag of selected object.
@@ -238,7 +241,7 @@ classdef MSpecController
 
             Preprocessing.peakDetection(app);
             Visualization.plotPeakDetection(app);
-            %Preprocessing.peakBinning_Hierachical(app);
+            close(d);
         end
         
         function startPeakBinning(app)
@@ -257,6 +260,7 @@ classdef MSpecController
         end
         
         function startRealPeakBinning(app)
+            
             switch app.Binning_ImportEdgesCheckBox.Value
                 case true % use imported Edge
                     if app.Binning_FileLabel.Text == "Choose File . . ." % users not yet import the file
@@ -264,11 +268,16 @@ classdef MSpecController
                         msg = 'No Edges Imported';
                         errordlg('Please import the file first',msg);
                     else
+                        d = uiprogressdlg(app.MSPECAppUIFigure,'Title','Generating Peak Bins','Message','Please wait . . .','Indeterminate','on');
+                        drawnow
+            
                         Preprocessing.startPeakBinningFromEdges(app); % Find Edges and Bin data
-                        Visualization.plotBinningEdgeList(app);
+                        %Visualization.plotBinningEdgeList(app);
                         Visualization.plotBinningSpectra(app);
                         MSpecController.Binning_displaySamplePointOption(app);
                         Visualization.displayBinDataTable(app);
+                        
+                        close(d);
                     end
                 otherwise % use parameters
                     Preprocessing.startPeakBinning(app); % Find Edges and Bin data
@@ -276,10 +285,13 @@ classdef MSpecController
                         msg = 'No Edges found.';
                         errordlg('Please re-adjust the parameters and try again',msg);
                     else
+                        d = uiprogressdlg(app.MSPECAppUIFigure,'Title','Generating Peak Bins','Message','Please wait . . .','Indeterminate','on');
+                        drawnow
                         Visualization.plotBinningEdgeList(app);
                         Visualization.plotBinningSpectra(app);
                         MSpecController.Binning_displaySamplePointOption(app);
                         Visualization.displayBinDataTable(app);
+                        close(d);
                     end
             end
             

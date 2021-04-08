@@ -37,10 +37,6 @@ classdef PreprocessedMSData < handle
         
         % Peak Detection and Binning
         
-        PreproceesedImportData %raw imported data
-        PreproceesedMzValues %raw mz
-        PreproceesedSpectraIntensities %raw y
-        
         %Detect
         IsAutoDetected
         Base
