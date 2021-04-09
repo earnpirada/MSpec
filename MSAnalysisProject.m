@@ -4,8 +4,14 @@ classdef MSAnalysisProject < handle
         ProjectName
         CreatedDate
         Description
+        ClassificationModel
+        ClassificationModelType
+        PreprocessParameters PreprocessingParameters
         RawData MSData
-        PreprocessedData PreprocessedMSData
+        PreprocessedData PreprocessedMSAData
+        PredictionResult
+        ClassNames
+        ScoreMatrix
     end
     
     methods
@@ -20,7 +26,7 @@ classdef MSAnalysisProject < handle
             obj.ProjectName = projName;
             obj.Description = description;
             obj.CreatedDate = datetime('now','Format','d-MMM-y HH:mm:ss');
-            obj.PreprocessedData = PreprocessedMSData();
+            obj.PreprocessedData = PreprocessedMSAData();
         end
         
     end

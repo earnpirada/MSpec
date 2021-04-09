@@ -6,7 +6,7 @@ classdef MSpecAnalysisController
     methods (Static)
         
         function importData(app)
-            d = uiprogressdlg(app.UIFigure,'Title','Please Wait',...
+            d = uiprogressdlg(app.MSpecAnalysisUIFigure,'Title','Please Wait',...
                 'Message','Opening the import window');
             pause(.5)
             handles.filename = uigetfile('*.csv*');
@@ -255,14 +255,27 @@ classdef MSpecAnalysisController
         
         function loadPreprocessParameters(app)
             selectedModel = MSpecAnalysisController.retrieveModel(app);
-            
-            app.CurrentModel = selectedModel.model.Model;
-            app.CurrentPreprocessParameters = selectedModel.model.Preprocessing;
-
+            app.CurrentProject.ClassificationModel = selectedModel.model.Model;
+            app.CurrentProject.PreprocessParameters = selectedModel.model.Preprocessing;
+        end
+        
+        function setupModelType(app)
+            selectedNodes = app.ModelTypeTree.SelectedNodes;
+            switch selectedNodes.Parent
+                case app.KNEARESTNEIGHBORKNNNode
+                    app.CurrentProject.ClassificationModelType = 'KNN';
+                case app.SUPPORTVECTORMACHINESSVMNode
+                    app.CurrentProject.ClassificationModelType = 'SVM';
+                case app.DECISIONTREESNode
+                    app.CurrentProject.ClassificationModelType = 'Decision Tree';
+                case app.NAIVEBAYESCLASSIFIERSNode
+                    app.CurrentProject.ClassificationModelType = 'Naive Bayes';
+                otherwise
+            end
         end
         
         function parametersToUI(app)
-            params = app.CurrentPreprocessParameters;
+            params = app.CurrentProject.PreprocessParameters;
             
             % set UI parameters
             app.Preprocessing_WindowSizeEditField.Value = params.WindowSize; %window size
@@ -280,15 +293,234 @@ classdef MSpecAnalysisController
         
         
         function startPreprocessing(app)
-            d = uiprogressdlg(app.UIFigure,'Title','Initializing the Preprocessing',...
+            d = uiprogressdlg(app.MSpecAnalysisUIFigure,'Title','Initializing the Preprocessing',...
             'Indeterminate','on');
             drawnow
+            
             % LOAD and STORE PARAM from the model
             MSpecAnalysisController.loadPreprocessParameters(app);
+            MSpecAnalysisController.setupModelType(app);
             % set UI params
             MSpecAnalysisController.parametersToUI(app);
+            app.TabGroup.SelectedTab = app.PreprocessingTab;
+            % Do preprocessing
+            MSpecAnalysisController.preprocessing(app);
+            % Plot
+            AnalysisVisualization.plotPreprocessedData(app);
+            
             close(d)
         end
+        
+        
+        function preprocessing(app)
+            rawData = app.CurrentProject.RawData;
+            params = app.CurrentProject.PreprocessParameters;
+
+            preprocessedData = PreprocessedMSAData();
+            
+            % start
+            MSpecAnalysisController.alignment(rawData,params,preprocessedData);
+            MSpecAnalysisController.baselineCorrection(rawData, preprocessedData, params);
+            MSpecAnalysisController.normalizeSpectra(rawData, preprocessedData, params);
+            MSpecAnalysisController.startPeakBinningFromEdges(rawData, preprocessedData, params);
+            
+            app.CurrentProject.PreprocessedData = preprocessedData;
+        end
+        
+        function alignment(rawData,params,preprocessedData)
+            sample = rawData.RawSpectraIntensities;
+            spectra = transpose(sample);
+            reference = spectra(params.ReferenceSpectrum,:);
+            segSize = params.SegmentSize;
+            shift = params.ShiftAllowance;
+            
+            if length(reference)~=length(spectra)
+                error('Reference and spectra of unequal lengths');
+            elseif length(reference)== 1
+                error('Reference cannot be of length 1');
+            end
+            if nargin==3
+                shift = length(reference);
+            end
+            for i=1:size(spectra,1)
+                startpos = 1;
+                aligned =[];
+                while startpos <= length(spectra)
+                    endpos=startpos+(segSize*2);
+                    if endpos >=length(spectra)
+                        samseg= spectra(i,startpos:length(spectra));
+                        refseg= reference(1,startpos:length(spectra));
+                    else
+                        samseg = spectra(i,startpos+segSize:endpos-1);
+                        refseg = reference(1,startpos+segSize:endpos-1);
+                        MSpecAnalysisController.findMin(preprocessedData,samseg,refseg);
+                        minpos = preprocessedData.MinPosition;
+                        endpos = startpos+minpos+segSize;
+                        samseg = spectra(i,startpos:endpos);
+                        refseg = reference(1,startpos:endpos);
+                    end
+                    MSpecAnalysisController.FFTcorr(preprocessedData,samseg,refseg,shift);
+                    lag = preprocessedData.SegmentLag;
+                    MSpecAnalysisController.move(preprocessedData,samseg,lag);
+                    aligned = [aligned preprocessedData.ShiftedSegment];
+                    startpos=endpos+1;
+                end
+                preprocessedData.PreprocessedSpectra(i,:) = aligned;
+            end
+        end
+        
+        function FFTcorr(preprocessedData,spectrum, target, shift)
+            %padding
+            M=size(target,2);
+            diff = 1000000;
+            for i=1:20
+                curdiff=((2^i)-M);
+                if (curdiff > 0 && curdiff<diff)
+                    diff = curdiff;
+                end
+            end
+            
+            target(1,M+diff)=0;
+            spectrum(1,M+diff)=0;
+            M= M+diff;
+            X=fft(target);
+            Y=fft(spectrum);
+            R=X.*conj(Y);
+            R=R./(M);
+            rev=ifft(R);
+            vals=real(rev);
+            maxpos = 1;
+            maxi = -1;
+            if M<shift
+                shift = M;
+            end
+            
+            for i = 1:shift
+                if (vals(1,i) > maxi)
+                    maxi = vals(1,i);
+                    maxpos = i;
+                end
+                if (vals(1,length(vals)-i+1) > maxi)
+                    maxi = vals(1,length(vals)-i+1);
+                    maxpos = length(vals)-i+1;
+                end
+            end
+        
+            if maxi < 0.1
+                lag =0;
+            end
+            if maxpos > length(vals)/2
+               lag = maxpos-length(vals)-1;
+            else
+               lag =maxpos-1;
+            end
+            preprocessedData.SegmentLag = lag;
+        end
+
+        function move(preprocessedData, seg, lag)
+            
+            if (lag == 0) || (lag >= length(seg))
+                movedSeg = seg;
+            end
+            
+            if lag > 0
+                ins = ones(1,lag)*seg(1);
+                movedSeg = [ins seg(1:(length(seg) - lag))];
+            elseif lag < 0
+                lag = abs(lag);
+                ins = ones(1,lag)*seg(length(seg));
+                movedSeg = [seg((lag+1):length(seg)) ins];
+            end
+            preprocessedData.ShiftedSegment = movedSeg;
+        end
+        
+        function findMin(preprocessedData, samseg,refseg)
+        
+            [Cs,Is]=sort(samseg);
+            [Cr,Ir]=sort(refseg);
+            minposA = [];
+            minInt = [];
+            for i=1:round(length(Cs)/20)
+                for j=1:round(length(Cs)/20)
+                    if Ir(j)==Is(i);
+                        minpos = Is(i);
+                    end
+                end
+            end
+            preprocessedData.MinPosition = Is(1,1);
+        end
+        
+        function baselineCorrection(rawData, preprocessedData, params)
+            baselined = msbackadj(rawData.RawMzValues,transpose(preprocessedData.PreprocessedSpectra),'STEPSIZE', params.StepSize,...
+                'WINDOWSIZE', params.WindowSize,'QuantileValue',params.QuantileValue,'SmoothMethod','lowess');        
+            baselined = max(baselined,0);
+            preprocessedData.PreprocessedSpectra = mslowess(rawData.RawMzValues,baselined);
+        end
+        
+        function normalizeSpectra(rawData, preprocessedData, params)
+            % Data Normalization
+                
+            NormalizedSpectra = preprocessedData.PreprocessedSpectra;
+            numberOfSpectra = rawData.NumberOfSpectra;
+            
+            switch params.NormalizeMethod % Get Tag of selected object.
+                case 'Sum'
+                    for j = 1:numberOfSpectra
+                        colj = NormalizedSpectra(:,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./sum(colj);
+                    end
+                 case 'Area'
+                    for j = 1:numberOfSpectra
+                        colj = NormalizedSpectra(:,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./trapz(app.CurrentProject.RawData.RawMzValues, colj);
+                    end
+                 case 'Norm'
+                    for j = 1:numberOfSpectra
+                        factor = norm(NormalizedSpectra(:,j),app.CurrentProject.PreprocessedData.NormalizationNormValue);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                    end
+                 case 'Median'
+                     for j = 1:numberOfSpectra
+                        factor = median(NormalizedSpectra(:,j));
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                     end
+                 case 'Noise'
+                    for j = 1:numberOfSpectra
+                        % Noise Level
+                        DifVector = diff(NormalizedSpectra(:,j));
+                        % universal thresholding
+                        MedOfDif = median(DifVector);
+                        e = abs(DifVector-MedOfDif);
+                        factor = median(e);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                    end
+                case 'Max'
+                    for j = 1:numberOfSpectra
+                        factor = max(NormalizedSpectra(:,j));
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./factor;
+                     end
+                 otherwise %peak
+                    idx = params.ReferencePeakIndex;
+                    for j = 1:numberOfSpectra
+                        ref = NormalizedSpectra(idx,j);
+                        NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./ref;
+                    end
+            end
+            preprocessedData.PreprocessedSpectra = NormalizedSpectra;
+        end
+        
+        function startPeakBinningFromEdges(rawData, preprocessedData, params)
+            
+            edgeList = params.ImportedEdgeList;
+            binnedData = generateBinsFromEdges(edgeList, rawData.RawMzValues, preprocessedData.PreprocessedSpectra);
+            
+            preprocessedData.BinIndexList = binnedData(:,1);
+            binnedData(:,1) = [];
+            preprocessedData.BinnedSpectra = binnedData;
+
+            
+        end
+                
     end
 end
 
