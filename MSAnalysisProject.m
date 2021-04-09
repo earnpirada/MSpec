@@ -5,10 +5,13 @@ classdef MSAnalysisProject < handle
         CreatedDate
         Description
         ClassificationModel
+        ClassificationModelType
         PreprocessParameters PreprocessingParameters
         RawData MSData
         PreprocessedData PreprocessedMSAData
         PredictionResult
+        ClassNames
+        ScoreMatrix
     end
     
     methods

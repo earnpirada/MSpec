@@ -255,8 +255,23 @@ classdef MSpecAnalysisController
         
         function loadPreprocessParameters(app)
             selectedModel = MSpecAnalysisController.retrieveModel(app);
-            app.CurrentProject.ClassificationModel = selectedModel.model.Model.model;
+            app.CurrentProject.ClassificationModel = selectedModel.model.Model;
             app.CurrentProject.PreprocessParameters = selectedModel.model.Preprocessing;
+        end
+        
+        function setupModelType(app)
+            selectedNodes = app.ModelTypeTree.SelectedNodes;
+            switch selectedNodes.Parent
+                case app.KNEARESTNEIGHBORKNNNode
+                    app.CurrentProject.ClassificationModelType = 'KNN';
+                case app.SUPPORTVECTORMACHINESSVMNode
+                    app.CurrentProject.ClassificationModelType = 'SVM';
+                case app.DECISIONTREESNode
+                    app.CurrentProject.ClassificationModelType = 'Decision Tree';
+                case app.NAIVEBAYESCLASSIFIERSNode
+                    app.CurrentProject.ClassificationModelType = 'Naive Bayes';
+                otherwise
+            end
         end
         
         function parametersToUI(app)
@@ -284,6 +299,7 @@ classdef MSpecAnalysisController
             
             % LOAD and STORE PARAM from the model
             MSpecAnalysisController.loadPreprocessParameters(app);
+            MSpecAnalysisController.setupModelType(app);
             % set UI params
             MSpecAnalysisController.parametersToUI(app);
             app.TabGroup.SelectedTab = app.PreprocessingTab;
@@ -501,8 +517,6 @@ classdef MSpecAnalysisController
             preprocessedData.BinIndexList = binnedData(:,1);
             binnedData(:,1) = [];
             preprocessedData.BinnedSpectra = binnedData;
-            [m,n] = size(preprocessedData.BinIndexList)
-            [o,p] = size(preprocessedData.BinnedSpectra)
 
             
         end
