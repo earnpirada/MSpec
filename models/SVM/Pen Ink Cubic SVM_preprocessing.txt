@@ -1,5 +1,0 @@
-Model Description for Pen Ink Classification
-
-1. This is a test script
-2. Hello World !
-3. Nice to meet you
