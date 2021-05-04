@@ -65,16 +65,17 @@ classdef Visualization
             %NormData = app.CurrentProject.PreprocessedData.NormalizedSpectra;
             %SampleIndex = transpose(1:app.ColumnNumber);
             %DataToDisplay = cat(2,SampleIndex,NormData);
-            app.Normalization_DataTable.RowName = 'numbered';
-            app.Normalization_DataTable.ColumnName = 'numbered';
+            %app.Normalization_DataTable.RowName = 'numbered';
+            %app.Normalization_DataTable.ColumnName = 'numbered';
 
-            app.Normalization_DataTable.Data = app.CurrentProject.PreprocessedData.NormalizedSpectra;
+            app.Normalization_DataTable.Data = [app.CurrentProject.RawData.RawMzValues app.CurrentProject.PreprocessedData.NormalizedSpectra];
             s = uistyle('HorizontalAlignment','center');
             addStyle(app.Normalization_DataTable,s);
         end
         
         function plotPeakDetection(app)
             cla(app.Detection_PeakDetectionPlot)
+            app.TotalnoofpeaksEditField.Value = my_numel(app.CurrentProject.PreprocessedData.CutThresholdPeak);
             app.Detection_PeakDetectionPlot.XLim = [app.CurrentProject.RawData.MinIntensity app.CurrentProject.RawData.MaxIntensity];
 
             if isempty(app.Detection_SpectrumtodisplayEditField.Value)
@@ -92,14 +93,13 @@ classdef Visualization
         end
         
         function plotPeakBinning_Hierachical(app)
+            app.TotalnoofcommonpeaksEditField.Value = length(app.CurrentProject.PreprocessedData.CMZ);
             hold(app.Binning_PeakBinningPlot,"on");
             box(app.Binning_PeakBinningPlot,"on");
-            plot(app.Binning_PeakBinningPlot,[CMZ CMZ],[-10 100],'-k');
-            plot(MZ,YN2)
-            axis([7200 8500 -10 100])
-            xlabel('Mass/Charge (M/Z)')
-            ylabel('Relative Intensity')
-            title('Common Mass/Charge (M/Z) Locations found by Clustering') 
+                for i=1:length(app.CurrentProject.PreprocessedData.CMZ)
+                    xline(app.Binning_PeakBinningPlot,app.CurrentProject.PreprocessedData.CMZ(i),'k');
+                end
+            plot(app.Binning_PeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
         end
         
         function plotBinningEdgeList(app)
@@ -138,6 +138,16 @@ classdef Visualization
                     end
                     hold(app.PeakBinningFinalPlot,"off");
             end     
+        end
+        
+        function plotAlignedPeak(app)
+            hold (app.Binning_AlignedPeakBinningPlot, "on");
+            box (app.Binning_AlignedPeakBinningPlot, "on");
+            for i=1:length(app.CurrentProject.PreprocessedData.CMZ)
+                xline(app.Binning_AlignedPeakBinningPlot,app.CurrentProject.PreprocessedData.CMZ(i),'k');
+            end
+            plot(app.Binning_AlignedPeakBinningPlot,app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra)
+            plot(app.Binning_AlignedPeakBinningPlot,app.CurrentProject.PreprocessedData.CMZ,app.CurrentProject.PreprocessedData.AlignedDetectedPeak,'o')
         end
         
         function displayBinDataTable(app)
