@@ -215,6 +215,7 @@ classdef Preprocessing
                         NormalizedSpectra(:, j) = NormalizedSpectra(:, j)./ref;
                     end
             end
+            NormalizedSpectra(isinf(NormalizedSpectra)|isnan(NormalizedSpectra)) = 0; % Replace NaNs and infinite values with zeros
             app.CurrentProject.PreprocessedData.NormalizedSpectra = NormalizedSpectra;
         end
         
@@ -227,6 +228,7 @@ classdef Preprocessing
                 app.CurrentProject.PreprocessedData.DetectedPeak = mspeaks(app.CurrentProject.RawData.RawMzValues,app.CurrentProject.PreprocessedData.NormalizedSpectra,'DENOISING',true,'BASE',app.CurrentProject.PreprocessedData.Base,'MULTIPLIER',app.CurrentProject.PreprocessedData.Multiplier,'HEIGHTFILTER',app.CurrentProject.PreprocessedData.HeightFilter);
             end
             app.CurrentProject.PreprocessedData.CutThresholdPeak = cellfun(@(p) p(p(:,1)>app.CurrentProject.PreprocessedData.PeakThreshold,:),app.CurrentProject.PreprocessedData.DetectedPeak,'Uniform',false);
+            
         end
         
         %==========Binning==========================
@@ -314,16 +316,16 @@ classdef Preprocessing
                 plot(app.Binning_AlignedPeakBinningPlot,currentCMZ,PA(:,index),'o')
             end
             
-            sprintf("%d ",PA)
             app.CurrentProject.PreprocessedData.AlignedDetectedPeak = PA;
         end
         
         function startPeakBinning(app)
             
-            method = app.Binning_BinningMethod.Value;
-            maxPeaks = app.Binning_NumberofBinsSpinner.Value;
-            tolerance = app.Binning_ToleranceEditField.Value;
-            edgeList = generateBins(app.CurrentProject.PreprocessedData.CMZ, maxPeaks, tolerance, method);
+            app.CurrentProject.PreprocessedData.BinningMethod = app.Binning_BinningMethod.Value;
+            app.CurrentProject.PreprocessedData.BinningMaxPeaks = app.Binning_NumberofBinsSpinner.Value;
+            app.CurrentProject.PreprocessedData.BinningTolerance = app.Binning_ToleranceEditField.Value;
+            edgeList = generateBins(app.CurrentProject.PreprocessedData.CMZ, app.CurrentProject.PreprocessedData.BinningMaxPeaks,...
+                app.CurrentProject.PreprocessedData.BinningTolerance, app.CurrentProject.PreprocessedData.BinningMethod);
             app.CurrentProject.PreprocessedData.EdgeList = edgeList;
             
             if isempty(edgeList)
