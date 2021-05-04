@@ -44,7 +44,6 @@ classdef DataImportExport
 
                 %RawImportData(1,:)=[];
                 RawMzValues=RawImportData(:,1);
-                %[RowNumber,ColumnNumber]= size(RawImportData);
                 [x,y] = size(RawImportData);
                 RawSpectraIntensities=zeros(x,y);
                 for i = 2:y
