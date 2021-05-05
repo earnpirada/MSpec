@@ -4,6 +4,7 @@ classdef MSAnalysisProject < handle
         ProjectName
         CreatedDate
         Description
+        ClassificationModelName
         ClassificationModel
         ClassificationModelType
         PreprocessParameters PreprocessingParameters

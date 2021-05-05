@@ -9,9 +9,9 @@ classdef MSpecAnalysisController
             d = uiprogressdlg(app.MSpecAnalysisUIFigure,'Title','Please Wait',...
                 'Message','Opening the import window');
             pause(.5)
-            handles.filename = uigetfile('*.csv*');
-            fileName=handles.filename;
-            [fPath, fName, fExt] = fileparts(fileName);
+            [file,path] = uigetfile('*.csv*');
+            [fPath, fName, fExt] = fileparts(file);
+            fileName = fullfile(path,file)
             switch lower(fExt)
               case '.ods'
                 d.Value = .33; 
@@ -63,18 +63,109 @@ classdef MSpecAnalysisController
             close(d)
         end
         
+        function requestExit(app)
+            projectName = app.CurrentProject.ProjectName;            
+            Location = pwd; 
+            ProjectData = app.CurrentProject;
+            dir = '\analysis projects';
+            Location = strcat(Location,dir);
+            FileName = strcat(projectName,'.mat');
+            
+            msg = ['Want to save your changes to "',FileName,'" ?'];
+            title = 'MSpec';
+            selection = uiconfirm(app.MSpecAnalysisUIFigure,msg,title,...
+                    'Options',{'Save and Exit','Exit without Saving','Cancel'},...
+                    'DefaultOption',1,'CancelOption',3);
+                if selection == "Save and Exit"
+                    save(fullfile(Location, projectName), 'ProjectData','-v7.3');
+                    delete(app);
+                elseif selection == "Exit without Saving"
+                    selection = uiconfirm(app.MSpecAnalysisUIFigure,'Close document?','Confirm Close without saving',...
+                        'Icon','warning');
+                    if selection == "OK"
+                        delete(app);
+                    else
+                        % do nothing
+                    end
+                else
+                    % do nothing
+                end
+            
+        end
+        
+        function getRecentFiles(app)
+            currentFolder = pwd;
+            % where MS projects are stored
+            directory = strcat(currentFolder,'.\analysis projects');
+            MyFolderInfo = dir(fullfile(directory,'*.mat'));
+            [numFile,~] = size(MyFolderInfo);
+            fileNameList = {};
+            for i = 1:numFile
+                fileNameList{end+1} = MyFolderInfo(i).name(1:end-4);
+            end
+            app.RecentFileListBox.Items = fileNameList;
+        end
+        
+        function loadRecentFiles(app)
+            d = uiprogressdlg(app.MSpecAnalysisUIFigure,'Title','Loading your project information','Message','Please wait . . .','Indeterminate','on');
+            drawnow
+            selectedFile = app.RecentFileListBox.Value;
+            Location = pwd;
+            dir = '\analysis projects';
+            Location = strcat(Location,dir);
+            FileName = strcat(selectedFile,'.mat');
+            loadedData = load(fullfile(Location, FileName));
+            app.CurrentProject = loadedData.ProjectData;
+            
+            %=========IMPORTANT================
+            MSpecAnalysisController.initAppFromFiles(app);
+            close(d);
+        end
+        
         function initProjectInfo(app, MSData)
-            app.ProjectNameEditField.Value = MSData.FileName(1:end-4);
+            [fPath, fName, fExt] = fileparts(MSData.FileName);
+            app.ProjectNameEditField.Value = fName;
             app.NumberofMassSpectraEditField.Value = MSData.NumberOfSpectra;
             app.WidthField.Value = 1;
             app.HeightField.Value = MSData.NumberOfSpectra;
-            app.WidthField.Editable = 'off';
-            app.HeightField.Editable = 'off';
+            %app.WidthField.Editable = 'off';
+            %app.HeightField.Editable = 'off';
             app.Import_CreateProjectButton.Enable = true;
+        end
+        
+        function calculateCol(app)
+            userinput = app.WidthField.Value;
+            numspec = app.CurrentProject.RawData.NumberOfSpectra;
+            if mod(numspec,userinput) ==0
+            	colnumber = numspec/userinput;
+                app.HeightField.Value = colnumber;
+            else
+                app.WidthField.Value = 1;
+                app.HeightField.Value = numspec;
+            end
+        end
+        
+        function calculateRow(app)
+            userinput = app.HeightField.Value;
+            numspec = app.CurrentProject.RawData.NumberOfSpectra;
+            if mod(numspec,userinput) ==0
+            	rownumber = numspec/userinput;
+                app.WidthField.Value = rownumber;
+            else
+                app.WidthField.Value = 1;
+                app.HeightField.Value = numspec;
+            end
         end
         
         function createProject (app)
             app.CurrentProject.setProjectInfo(app.ProjectNameEditField.Value,app.DescriptionEditField.Value);
+            app.CurrentProject.RawData.RowNumber = app.WidthField.Value;
+            app.CurrentProject.RawData.ColumnNumber = app.HeightField.Value;
+            if app.Imaging2DButton.Value
+                app.CurrentProject.RawData.DataType = 'imaging';
+            else
+                app.CurrentProject.RawData.DataType = 'ms';
+            end
             app.TabGroup.SelectedTab = app.ClassificationTab;
             %Init Classification Tab
             MSpecAnalysisController.displayProjectInfo(app);
@@ -88,6 +179,67 @@ classdef MSpecAnalysisController
             app.ProjectInfo_CreatedDate.Value = datestr(app.CurrentProject.CreatedDate);
             app.ProjectInfo_DescriptionTextArea.Value = app.CurrentProject.Description;
         end
+        
+        
+        function saveChanges(app)
+            d = uiprogressdlg(app.MSpecAnalysisUIFigure,'Title','Saving',...
+            'Indeterminate','on');
+            drawnow
+            projectName = app.CurrentProject.ProjectName;            
+            Location = pwd; 
+            ProjectData = app.CurrentProject;
+            dir = '\analysis projects';
+            Location = strcat(Location,dir);
+            FileName = strcat(projectName,'.mat');
+            save(fullfile(Location, FileName), 'ProjectData', '-v7.3');
+            close(d);
+        end
+        
+        function saveAs(app)
+            originalProjectName = app.CurrentProject.ProjectName;            
+            prompt = {'Enter a new project name'};
+            dlgtitle = 'New Project';
+            definput = {originalProjectName};
+            dims = [1 40];
+            answer = inputdlg(prompt,dlgtitle,dims,definput);
+            
+            if ~isempty(answer)
+                projectName = answer{1};
+                Location = pwd;
+                dir = '\analysis projects';
+                Location = strcat(Location,dir);
+                FileName = strcat(projectName,'.mat');
+
+                % if the file already exists then deny
+                if exist(fullfile(Location, FileName), 'file')
+                    msg = 'Saving these changes will overwrite previous files.';
+                    title = 'Project already exists';
+                    selection = uiconfirm(app.MSpecAnalysisUIFigure,msg,title,...
+                        'Options',{'Overwrite','Cancel'},...
+                        'DefaultOption',1,'CancelOption',2);
+                    if selection == "Overwrite"
+                        app.CurrentProject.ProjectName = answer{1};
+                        ProjectData = app.CurrentProject;
+                        save(fullfile(Location, projectName), 'ProjectData', '-v7.3');
+                    else
+                        % do nothing
+                        uiconfirm(app.MSpecAnalysisUIFigure,'Your project is not saved.','Cancel','Options',{'OK'},'Icon','error');
+                    end
+                else
+                % File does not exist.
+                    app.CurrentProject.ProjectName = answer{1};
+                    ProjectData = app.CurrentProject;
+                    save(fullfile(Location, projectName), 'ProjectData', '-v7.3');
+                    msg = sprintf('Your project has been saved to %s',Location);
+                    selection = uiconfirm(app.MSpecAnalysisUIFigure,msg,'Saved Sucessfully','Options',{'OK'},'Icon','success');
+                    if selection == "OK"
+                        % do nothing
+                    end
+                end 
+            end
+        end
+        
+        
         
         function retrieveModelTypes(app)
             
@@ -127,6 +279,21 @@ classdef MSpecAnalysisController
                 uitreenode(NB,'Text',NBFolderInfo(i).name(1:end-4),'NodeData',[strcat(nbdir,NBFolderInfo(i).name)]);
             end
             
+            Ensem = app.ENSEMBLEBaggedTreeNode;
+            endir = '.\models\Ensemble\';
+            EnsFolderInfo = dir(fullfile(endir,'*.mat'));
+            [numFile,~] = size(EnsFolderInfo);
+            for i = 1:numFile
+                uitreenode(Ensem,'Text',EnsFolderInfo(i).name(1:end-4),'NodeData',[strcat(endir,EnsFolderInfo(i).name)]);
+            end
+            
+            LDA = app.LINEARDISCRIINANTANALYSISLDANode;
+            ldadir = '.\models\LDA\';
+            LDAFolderInfo = dir(fullfile(ldadir,'*.mat'));
+            [numFile,~] = size(LDAFolderInfo);
+            for i = 1:numFile
+                uitreenode(LDA,'Text',LDAFolderInfo(i).name(1:end-4),'NodeData',[strcat(ldadir,LDAFolderInfo(i).name)]);
+            end
             
             % Expand the tree
             expand(t);
@@ -153,8 +320,8 @@ classdef MSpecAnalysisController
         end
         
         function importModel(app)
-            handles.filename = uigetfile('*.mat*');
-            fileName=handles.filename;
+            [file,path] = uigetfile('*.mat*');
+            fileName=fullfile(path,file);
             model=load(fileName);
             app.ImportedModel = model;
             app.ModelFileLabel.Text = [fileName,' has been imported successfully !'];
@@ -246,7 +413,7 @@ classdef MSpecAnalysisController
             
             MSpecAnalysisController.setPreprocessParam(app); % collect data
             
-            model = ClassificationModel(app.ImportedModel,app.PreprocessingSetting);
+            model = ClassificationModel(modelName, app.ImportedModel,app.PreprocessingSetting);
             modelFileName = strcat(modelName,'.mat');
             modelfullFileName = strcat(toSavePath,modelFileName);
             save(modelfullFileName,'model');
@@ -255,6 +422,7 @@ classdef MSpecAnalysisController
         
         function loadPreprocessParameters(app)
             selectedModel = MSpecAnalysisController.retrieveModel(app);
+            app.CurrentProject.ClassificationModelName = selectedModel.model.ModelName;
             app.CurrentProject.ClassificationModel = selectedModel.model.Model;
             app.CurrentProject.PreprocessParameters = selectedModel.model.Preprocessing;
         end
@@ -270,6 +438,10 @@ classdef MSpecAnalysisController
                     app.CurrentProject.ClassificationModelType = 'Decision Tree';
                 case app.NAIVEBAYESCLASSIFIERSNode
                     app.CurrentProject.ClassificationModelType = 'Naive Bayes';
+                case app.ENSEMBLEBaggedTreeNode
+                    app.CurrentProject.ClassificationModelType = 'Ensemble';
+                case app.LINEARDISCRIINANTANALYSISLDANode
+                    app.CurrentProject.ClassificationModelType = 'LDA';
                 otherwise
             end
         end
@@ -288,9 +460,22 @@ classdef MSpecAnalysisController
 
             app.Preprocessing_StartingpointEditField.Value = num2str(params.SectionStart); %starting point of section of interest
             app.Preprocessing_EndingpointEditField.Value = num2str(params.SectionEnd); %ending point of section of interest
+            
+            app.NumberofBinsEditField.Value = length(params.ImportedEdgeList)+1;
+            MSpecAnalysisController.DisplaySamplePointOption(app);
         
         end
         
+        function DisplaySamplePointOption(app)
+            SampleIndex = transpose(1:app.CurrentProject.RawData.NumberOfSpectra);
+            F = false(app.CurrentProject.RawData.NumberOfSpectra,1);
+            F = [SampleIndex F];
+            app.Binning_SelectDataTable.Data = F;
+            app.Binning_SelectDataTable.ColumnFormat = {'char', 'logical'};
+            s = uistyle('HorizontalAlignment','center');
+            addStyle(app.Binning_SelectDataTable,s);
+            app.Binning_SamplePointSpinner.Limits = [1 app.CurrentProject.RawData.NumberOfSpectra];
+        end
         
         function startPreprocessing(app)
             d = uiprogressdlg(app.MSpecAnalysisUIFigure,'Title','Initializing the Preprocessing',...
@@ -311,6 +496,22 @@ classdef MSpecAnalysisController
             close(d)
         end
         
+        function startWithoutPreprocessing(app)
+            d = uiprogressdlg(app.MSpecAnalysisUIFigure,'Title','Preparing features',...
+            'Indeterminate','on');
+            drawnow
+            % LOAD and STORE PARAM from the model
+            MSpecAnalysisController.loadPreprocessParameters(app);
+            MSpecAnalysisController.setupModelType(app);
+            % set UI params
+            MSpecAnalysisController.parametersToUI(app);
+            app.TabGroup.SelectedTab = app.PreprocessingTab;
+            % Do preprocessing
+            MSpecAnalysisController.skipPreprocessing(app);
+            close(d)
+
+        end
+        
         
         function preprocessing(app)
             rawData = app.CurrentProject.RawData;
@@ -324,6 +525,18 @@ classdef MSpecAnalysisController
             MSpecAnalysisController.normalizeSpectra(rawData, preprocessedData, params);
             MSpecAnalysisController.startPeakBinningFromEdges(rawData, preprocessedData, params);
             
+            app.CurrentProject.PreprocessedData = preprocessedData;
+        end
+        
+        function skipPreprocessing(app)
+            rawData = app.CurrentProject.RawData;
+            params = app.CurrentProject.PreprocessParameters;
+
+            preprocessedData = PreprocessedMSAData();
+            preprocessedData.PreprocessedSpectra = rawData.RawSpectraIntensities;
+
+            % start
+            MSpecAnalysisController.startPeakBinningFromEdges(rawData, preprocessedData, params);
             app.CurrentProject.PreprocessedData = preprocessedData;
         end
         
@@ -520,6 +733,53 @@ classdef MSpecAnalysisController
 
             
         end
+        
+        function initAppFromFiles(app)
+           
+            
+            prj = app.CurrentProject;
+            tempTab = app.ClassificationTab;
+
+            AnalysisVisualization.displayImportedDataTable(app);
+
+            if ~isempty(prj.ClassificationModel)
+                switch prj.ClassificationModelType
+                    case 'KNN'
+                    case 'SVM'
+                        SVM = app.SUPPORTVECTORMACHINESSVMNode;
+                        children = SVM.Children;
+                    case 'Decision Tree'
+                    case 'Naive Bayes'
+                    case 'Ensemble'
+                    case 'LDA'
+                end
+                for i=1:length(children)
+                    if children(i).Text == string(app.CurrentProject.ClassificationModelName)
+                        app.ModelTypeTree.SelectedNodes = children(i);
+                    end
+                end
+                MSpecAnalysisController.retrieveModelInfo(app);
+            end
+            if ~isempty(prj.PreprocessedData.PreprocessedSpectra)
+            	AnalysisVisualization.plotPreprocessedData(app);
+                MSpecAnalysisController.parametersToUI(app)
+                tempTab = app.PreprocessingTab;
+            end
+            
+            if ~isempty(prj.PredictionResult)
+            	AnalysisVisualization.displayPredictionResult(app);
+                AnalysisVisualization.displayScoreTable(app,app.CurrentProject.ScoreMatrix,app.CurrentProject.ClassNames);
+                AnalysisVisualization.findClassPercentage(app);
+                tempTab = app.ResultsTab;
+            end
+         
+         
+            % Others UI Setting
+            MSpecAnalysisController.displayProjectInfo(app);
+            app.TabGroup.SelectedTab = tempTab;
+            
+        end
+        
                 
     end
 end
