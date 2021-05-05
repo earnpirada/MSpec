@@ -9,9 +9,7 @@ function binArray= generateBinsFromEdges(edgeList,MZvalues,intensities)
     % number 1 to n bins
     binIndexList = 1:edgeNumber;
     allBinIntensityList = [];
-    
-    % Data Validation is not done yet.
-    
+        
     for k = 1:SpecNumber    % for each spectra
         binIntensityList = [];  % currrent spec accumulate intensities
         currentAccumulate = 0;  % currrent m/z accumulate intensities
