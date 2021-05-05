@@ -46,7 +46,7 @@ classdef AnalysisVisualization
                     hold(app.PreprocessedDataPlot,"on");
                     for k = 1:length(retreivedata(:,2))
                         if retreivedata(k,2) == 1
-                            bar(app.PreprocessedDataPlot,data.BinIndexList, adata.BinnedSpectra(:, k));
+                            bar(app.PreprocessedDataPlot,data.BinIndexList, data.BinnedSpectra(:, k));
                         end
                     end
                     hold(app.PreprocessedDataPlot,"off");
