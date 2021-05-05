@@ -21,10 +21,9 @@ classdef PreprocessingParameters
         ReferencePeakIndex
         NormalizationNormValue = 1;
         
-        
         % Peak Detection and Binning
         ImportedEdgeListFileName
-        ImportedEdgeList
+        ImportedEdgeList %from App
     end
     
     methods

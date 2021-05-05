@@ -2,14 +2,14 @@ classdef MSData
     properties
         FileName
         RawData
-        RawMzValues
+        RawMzValues %M/Z
         RawSpectraIntensities
         MinIntensity
         MaxIntensity
         NumberOfSpectra
         RowNumber
         ColumnNumber
-        DataType
+        DataType %1D or 2D test
     end
     
     methods
