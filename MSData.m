@@ -9,7 +9,7 @@ classdef MSData
         NumberOfSpectra
         RowNumber
         ColumnNumber
-        DataType %1D or 2D
+        DataType %1D or 2D test
     end
     
     methods
