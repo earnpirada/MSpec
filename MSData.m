@@ -2,7 +2,7 @@ classdef MSData
     properties
         FileName
         RawData
-        RawMzValues
+        RawMzValues %M/Z
         RawSpectraIntensities
         MinIntensity
         MaxIntensity
