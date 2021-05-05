@@ -55,6 +55,10 @@ classdef PreprocessedMSData < handle
         EdgeList
         ImportedEdgeListFileName
         ImportedEdgeList
+        IsImportedEdge = false;
+        BinningMethod
+        BinningMaxPeaks
+        BinningTolerance
         BinIndexList
         BinnedSpectra
         BinningDisplay = 'All';
